@@ -1,70 +1,23 @@
 import React, { useState, useEffect } from "react";
-import styled from "styled-components";
-import { ListGroup, Button, Container, Row, Col } from "react-bootstrap";
+import { Row, Col } from "react-bootstrap";
+import { ipcRenderer } from "electron";
 import DatasetForm from "./DatasetForm";
 import SoftwareForm from "./SoftwareForm";
 import InitModal from "../InitModal";
-import fs from "fs";
-import path from "path";
-import { ipcRenderer } from "electron";
-
-const StyledContainer = styled(Container)`
-  background-color: #282828;
-  color: #ffffff;
-  padding: 30px;
-  border-radius: 10px;
-  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-`;
-
-const StyledTitle = styled.h2`
-  margin-bottom: 30px;
-  text-align: center;
-`;
-
-const StyledListGroup = styled(ListGroup)`
-  background-color: #3e3e3e;
-`;
-
-const StyledListGroupItem = styled(ListGroup.Item)`
-  background-color: #3e3e3e;
-  color: ${(props) => (props.isRegistered ? "#888" : "#ffffff")};
-  border-color: #555;
-  cursor: ${(props) => (props.isRegistered ? "not-allowed" : "pointer")};
-  pointer-events: ${(props) => (props.isRegistered ? "none" : "auto")};
-  &:hover {
-    background-color: ${(props) =>
-      props.isRegistered ? "#3e3e3e" : "#4e4e4e"};
-  }
-`;
-
-const StyledButton = styled(Button)`
-  margin-right: 10px;
-  background-color: #007bff;
-  border: none;
-  &:hover {
-    background-color: #0056b3;
-  }
-`;
-
-const CheckMark = styled.span`
-  color: #28a745;
-  margin-left: 10px;
-`;
-
-const DoneButton = styled(StyledButton)`
-  margin-top: 20px;
-`;
-
-const ButtonContainer = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-top: 20px;
-`;
-
-const RightAlignedButton = styled(StyledButton)`
-  margin-left: auto;
-`;
+import DoiInputComponent from "./DoiInput";
+import { loadRoCrateFiles, normalizePath } from "./Utils/fileUtils";
+import {
+  StyledContainer,
+  StyledTitle,
+  StyledListGroup,
+  StyledListGroupItem,
+  DoiListItem,
+  StyledButton,
+  CheckMark,
+  ButtonContainer,
+  DoneButton,
+  RightAlignedButton,
+} from "./styles";
 
 function FileSelector({
   rocratePath,
@@ -81,89 +34,34 @@ function FileSelector({
   const [registeredFiles, setRegisteredFiles] = useState([]);
   const [showInitModal, setShowInitModal] = useState(false);
   const [packageType, setPackageType] = useState(null);
-
-  const readFilesRecursively = async (dir, baseDir) => {
-    let results = [];
-    const items = await fs.promises.readdir(dir, { withFileTypes: true });
-
-    for (const item of items) {
-      const fullPath = path.join(dir, item.name);
-      const relativePath = path.relative(baseDir, fullPath);
-
-      if (item.isDirectory()) {
-        results = results.concat(await readFilesRecursively(fullPath, baseDir));
-      } else if (
-        item.isFile() &&
-        item.name !== "ro-crate-metadata.json" &&
-        item.name !== ".DS_Store"
-      ) {
-        results.push(relativePath);
-      }
-    }
-
-    return results;
-  };
-
-  const normalizePath = (filePath) =>
-    filePath.replace(/^\//, "").replace(/\\/g, "/");
+  const [showDoiInput, setShowDoiInput] = useState(false);
+  const [doiMetadata, setDoiMetadata] = useState(null);
 
   useEffect(() => {
-    const loadFiles = async () => {
+    const initializeRoCrate = async () => {
       try {
-        if (!rocratePath) {
-          setError("Please select an RO-Crate directory.");
-          return;
-        }
-        await new Promise((resolve) => setTimeout(resolve, 100));
+        const result = await loadRoCrateFiles(rocratePath);
 
-        const fileList = await fs.promises.readdir(rocratePath);
-        const metadataExists = fileList.includes("ro-crate-metadata.json");
-
-        if (!metadataExists) {
+        if (result.needsInit) {
           setShowInitModal(true);
           return;
         }
 
-        const filteredFiles = await readFilesRecursively(
-          rocratePath,
-          rocratePath
-        );
-
-        if (filteredFiles.length === 0) {
-          setError(
-            "No files found in the RO-Crate directory. Please add files to the selected folder."
-          );
-        } else {
-          setFiles(filteredFiles);
-          setError(null);
-
-          // Load registered files and package type from ro-crate-metadata.json
-          const metadataPath = path.join(rocratePath, "ro-crate-metadata.json");
-          const metadata = JSON.parse(
-            await fs.promises.readFile(metadataPath, "utf8")
-          );
-          const registeredFiles = metadata["@graph"]
-            .filter((item) => item.contentUrl)
-            .map((item) =>
-              normalizePath(item.contentUrl.replace("file://", ""))
-            );
-          setRegisteredFiles(registeredFiles);
-
-          // Set package type
-          setPackageType(metadata.packageType || null);
-          console.log(packageType);
-        }
+        setFiles(result.files);
+        setRegisteredFiles(result.registeredFiles);
+        setPackageType(result.packageType);
+        setError(null);
       } catch (error) {
         console.error("Error reading directory or metadata:", error);
-        setError(
-          "Error reading directory or metadata. Please make sure the path is correct and accessible."
-        );
+        setError(error.message);
         setFiles([]);
       }
     };
 
-    loadFiles();
-  }, [rocratePath, registeredFiles]);
+    if (rocratePath) {
+      initializeRoCrate();
+    }
+  }, [rocratePath]);
 
   const handleFileSelect = (file) => {
     setSelectedFile(file);
@@ -183,13 +81,15 @@ function FileSelector({
       setFileType(null);
     } else {
       setSelectedFile(null);
+      setShowDoiInput(false);
+      setDoiMetadata(null);
     }
   };
 
   const handleBrowse = async () => {
     try {
       const result = await ipcRenderer.invoke("open-directory-dialog");
-      if (result.filePaths && result.filePaths.length > 0) {
+      if (result.filePaths?.[0]) {
         setRocratePath(result.filePaths[0]);
       }
     } catch (error) {
@@ -201,7 +101,7 @@ function FileSelector({
   const handleChangeCrate = async () => {
     try {
       const result = await ipcRenderer.invoke("open-directory-dialog");
-      if (result.filePaths && result.filePaths.length > 0) {
+      if (result.filePaths?.[0]) {
         setRocratePath(result.filePaths[0]);
         setSelectedFile(null);
         setFileType(null);
@@ -209,11 +109,19 @@ function FileSelector({
         setRegisteredFiles([]);
         setError(null);
         setPackageType(null);
+        setShowDoiInput(false);
+        setDoiMetadata(null);
       }
     } catch (error) {
       console.error("Failed to open directory dialog:", error);
       setError("Failed to open directory dialog. Please try again.");
     }
+  };
+
+  const handleDoiSubmit = (metadata) => {
+    setDoiMetadata(metadata);
+    setFileType("dataset");
+    setSelectedFile("doi");
   };
 
   const handleInitialize = () => {
@@ -229,18 +137,35 @@ function FileSelector({
     }
   };
 
+  const refreshRegisteredFiles = async () => {
+    try {
+      const result = await loadRoCrateFiles(rocratePath);
+      setRegisteredFiles(result.registeredFiles);
+    } catch (error) {
+      console.error("Error refreshing registered files:", error);
+    }
+  };
+
   if (selectedFile && fileType) {
     const FormComponent = fileType === "dataset" ? DatasetForm : SoftwareForm;
     return (
       <FormComponent
         file={selectedFile}
-        onBack={handleBack}
+        onBack={async () => {
+          await refreshRegisteredFiles();
+          handleBack();
+          setShowDoiInput(false);
+        }}
         rocratePath={rocratePath}
-        onSuccess={() => {
+        onSuccess={async () => {
+          await refreshRegisteredFiles();
           onFileRegister();
           setSelectedFile(null);
           setFileType(null);
+          setDoiMetadata(null);
+          setShowDoiInput(false);
         }}
+        doiMetadata={doiMetadata}
       />
     );
   }
@@ -270,6 +195,8 @@ function FileSelector({
             </StyledButton>
           </Col>
         </Row>
+      ) : showDoiInput ? (
+        <DoiInputComponent onBack={handleBack} onDoiSubmit={handleDoiSubmit} />
       ) : (
         <>
           <Row>
@@ -298,6 +225,9 @@ function FileSelector({
                       )}
                     </StyledListGroupItem>
                   ))}
+                  <DoiListItem action onClick={() => setShowDoiInput(true)}>
+                    Register a publication or dataset using DOI...
+                  </DoiListItem>
                 </StyledListGroup>
               )}
             </Col>
