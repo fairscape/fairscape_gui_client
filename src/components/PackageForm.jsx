@@ -124,18 +124,18 @@ function PackageForm({ rocratePath, setRocratePath, onComplete }) {
     try {
       // Generate evidence graphs
       setCurrentStep(1);
-      const evidenceGraphResult = await ipcRenderer.invoke(
-        "generate-evidence-graphs",
-        rocratePath
-      );
-      if (evidenceGraphResult.success) {
-        setOutput(
-          (prevOutput) =>
-            prevOutput + "\nEvidence graphs generated successfully."
-        );
-      } else {
-        throw new Error(evidenceGraphResult.error);
-      }
+      // const evidenceGraphResult = await ipcRenderer.invoke(
+      //   "generate-evidence-graphs",
+      //   rocratePath
+      // );
+      // if (evidenceGraphResult.success) {
+      //   setOutput(
+      //     (prevOutput) =>
+      //       prevOutput + "\nEvidence graphs generated successfully."
+      //   );
+      // } else {
+      //   throw new Error(evidenceGraphResult.error);
+      // }
 
       // Zip the updated RO-Crate
       setCurrentStep(2);
