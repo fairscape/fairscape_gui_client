@@ -126,6 +126,8 @@ const projects = [
   { name: "CM4AI", guid: "ark:59852/project-cm4ai" },
   { name: "CHORUS", guid: "ark:59852/project-chorus" },
   { name: "PreMo", guid: "ark:59852/project-premo" },
+  { name: "Voice", guid: "ark:59852/project-voice" },
+  { name: "AI-READI", guid: "ark:59852/project-ai-readi" },
 ];
 
 function InitForm({ rocratePath, setRocratePath, onSuccess }) {
@@ -138,7 +140,7 @@ function InitForm({ rocratePath, setRocratePath, onSuccess }) {
     keywords: "",
     packageType: "",
     author: "",
-    license: LICENSE_OPTIONS[0].value, // Default to CC BY 4.0
+    license: LICENSE_OPTIONS[0].value,
   });
 
   const [jsonLdPreview, setJsonLdPreview] = useState({});
@@ -172,20 +174,23 @@ function InitForm({ rocratePath, setRocratePath, onSuccess }) {
   const updateJsonLdPreview = () => {
     const guid = generateGuid(formData.name);
     const preview = {
-      "@id": guid,
       "@context": {
         "@vocab": "https://schema.org/",
         EVI: "https://w3id.org/EVI#",
       },
-      "@type": "https://w3id.org/EVI#ROCrate",
-      name: formData.name,
-      isPartOf: [],
-      keywords: formData.keywords.split(",").map((k) => k.trim()),
-      description: formData.description,
-      author: formData.author,
-      packageType: formData.packageType,
-      license: formData.license,
-      "@graph": [],
+      "@graph": [
+        {
+          "@id": guid,
+          "@type": "https://w3id.org/EVI#ROCrate",
+          name: formData.name,
+          isPartOf: [],
+          keywords: formData.keywords.split(",").map((k) => k.trim()),
+          description: formData.description,
+          author: formData.author,
+          packageType: formData.packageType,
+          license: formData.license,
+        },
+      ],
     };
 
     if (formData.organization_name) {
