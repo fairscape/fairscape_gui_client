@@ -172,25 +172,21 @@ function InitForm({ rocratePath, setRocratePath, onSuccess }) {
   };
 
   const updateJsonLdPreview = () => {
-    const guid = generateGuid(formData.name);
-    const preview = {
-      "@context": {
-        "@vocab": "https://schema.org/",
-        EVI: "https://w3id.org/EVI#",
-      },
-      "@graph": [
-        {
-          "@id": guid,
-          "@type": "https://w3id.org/EVI#ROCrate",
-          name: formData.name,
-          isPartOf: [],
-          keywords: formData.keywords.split(",").map((k) => k.trim()),
-          description: formData.description,
-          author: formData.author,
-          packageType: formData.packageType,
-          license: formData.license,
-        },
-      ],
+    const guid = generateGuid(formData.name || "unnamed");
+
+    const node = {
+      "@id": guid,
+      "@type": "https://w3id.org/EVI#ROCrate",
+      name: formData.name,
+      isPartOf: [],
+      keywords: (formData.keywords || "")
+        .split(",")
+        .map((k) => k.trim())
+        .filter(Boolean),
+      description: formData.description,
+      author: formData.author,
+      packageType: formData.packageType,
+      license: formData.license,
     };
 
     if (formData.organization_name) {
@@ -198,7 +194,7 @@ function InitForm({ rocratePath, setRocratePath, onSuccess }) {
         (org) => org.name === formData.organization_name
       );
       if (organization) {
-        preview.isPartOf.push({
+        node.isPartOf.push({
           "@id": organization.guid,
           "@type": "Organization",
           name: organization.name,
@@ -211,13 +207,21 @@ function InitForm({ rocratePath, setRocratePath, onSuccess }) {
         (proj) => proj.name === formData.project_name
       );
       if (project) {
-        preview.isPartOf.push({
+        node.isPartOf.push({
           "@id": project.guid,
           "@type": "Project",
           name: project.name,
         });
       }
     }
+
+    const preview = {
+      "@context": {
+        "@vocab": "https://schema.org/",
+        EVI: "https://w3id.org/EVI#",
+      },
+      "@graph": [node],
+    };
 
     setJsonLdPreview(preview);
   };

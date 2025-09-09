@@ -39,7 +39,7 @@ async function convertFileToSchemaJSON(rocratePath, filePath) {
     const fileName = path.basename(filePath, fileExtension);
     const fileType = fileExtension.slice(1).toUpperCase();
 
-    // Check if it's an HDF5 file
+    // HDF5
     if (fileExtension === ".h5" || fileExtension === ".hdf5") {
       const schema = await HDF5Schema.inferFromFile(
         fullPath,
@@ -47,7 +47,6 @@ async function convertFileToSchemaJSON(rocratePath, filePath) {
         `Auto-generated schema for ${fileType} file: ${fileName}`
       );
 
-      // Return the complete HDF5 schema without transforming properties
       return {
         name: schema.name,
         description: schema.description,
@@ -61,7 +60,7 @@ async function convertFileToSchemaJSON(rocratePath, filePath) {
       };
     }
 
-    // For CSV/Parquet files, keep the existing transformation
+    // CSV/Parquet
     const schema = await TabularValidationSchema.inferFromFile(
       fullPath,
       fileName,
@@ -220,6 +219,7 @@ ipcMain.handle(
   }
 );
 
+// UPDATED: assumes schemaId arrives as { "@id": "ark:..." }
 ipcMain.handle(
   "validate-dataset",
   async (event, { rocratePath, datasetId, schemaId }) => {
@@ -229,20 +229,34 @@ ipcMain.handle(
         await fs.promises.readFile(metadataPath, "utf8")
       );
 
-      // Find dataset and schema in the graph
-      const graph = metadata["@graph"];
-      const dataset = graph.find((item) => item["@id"] === datasetId);
-      const schema = graph.find((item) => item["@id"] === schemaId);
+      const graph = metadata["@graph"] || [];
 
-      if (!dataset || !schema) {
-        throw new Error("Dataset or schema not found");
+      // Helper: normalize ref to a string id (expects {"@id": "..."} per your note)
+      const idOf = (ref) =>
+        (ref && typeof ref === "object" && (ref["@id"] || ref.id)) ||
+        (typeof ref === "string" ? ref : null);
+
+      const schemaIdStr = idOf(schemaId);
+
+      const dataset = graph.find((item) => item["@id"] === datasetId);
+      if (!dataset) {
+        throw new Error(`Dataset not found: ${datasetId}`);
       }
 
-      // Get the file path from the dataset's contentUrl
-      const filePath = dataset.contentUrl.replace("file:///", "");
+      const schema = graph.find((item) => item["@id"] === schemaIdStr);
+      if (!schema) {
+        throw new Error(`Schema not found: ${JSON.stringify(schemaId)}`);
+      }
+
+      const url = dataset.contentUrl;
+      if (!url) {
+        throw new Error(`contentUrl missing on dataset ${datasetId}`);
+      }
+
+      // strip file:///
+      const filePath = String(url).replace(/^file:\/+/, "");
       const fullPath = path.join(rocratePath, filePath);
 
-      // Determine file type and create appropriate schema instance
       const fileType = FileType.fromExtension(fullPath);
 
       let schemaInstance;

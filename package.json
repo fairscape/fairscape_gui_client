@@ -62,7 +62,7 @@
     "mac": {
       "category": "public.app-category.developer-tools",
       "icon": "build/icon.icns",
-      "identity": "Apple Development: jniestroy@gmail.com (AM6XMDFRYD)",
+      "identity": "FAIRSCAPE Developer",
       "target": [
         "dmg"
       ]
