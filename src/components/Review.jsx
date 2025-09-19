@@ -9,11 +9,14 @@ import { JsonLdPreview } from "./StyledComponents";
 import DatasetValidator from "./DatasetValidator";
 
 const StyledContainer = styled(Container)`
-  background-color: #282828;
-  color: #ffffff;
+  background-color: ${(props) => props.theme.colors.card};
+  color: ${(props) => props.theme.colors.text};
   padding: 30px;
   border-radius: 10px;
-  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+  box-shadow: ${(props) =>
+    props.theme.name === "light"
+      ? "0 0 10px rgba(0, 0, 0, 0.1)"
+      : "0 0 10px rgba(0, 0, 0, 0.3)"};
   display: flex;
   flex-direction: column;
   max-height: calc(100vh - 60px);
@@ -23,6 +26,7 @@ const StyledContainer = styled(Container)`
 const StyledTitle = styled.h2`
   margin-bottom: 30px;
   text-align: center;
+  color: ${(props) => props.theme.colors.text};
 `;
 
 const ContentWrapper = styled.div`
@@ -42,43 +46,43 @@ const ScrollableContent = styled.div`
   }
 
   &::-webkit-scrollbar-track {
-    background: #3e3e3e;
+    background: ${(props) => props.theme.colors.input};
   }
 
   &::-webkit-scrollbar-thumb {
-    background-color: #555;
+    background-color: ${(props) => props.theme.colors.border};
     border-radius: 4px;
   }
 
   &::-webkit-scrollbar-thumb:hover {
-    background-color: #777;
+    background-color: ${(props) => props.theme.colors.borderLight};
   }
 `;
 
 const StyledTable = styled(Table)`
-  color: #ffffff;
-  background-color: #3e3e3e;
-  border-color: #555;
+  color: ${(props) => props.theme.colors.text};
+  background-color: ${(props) => props.theme.colors.card};
+  border-color: ${(props) => props.theme.colors.border};
 
   th,
   td {
-    border-color: #555;
+    border-color: ${(props) => props.theme.colors.border};
   }
 
   thead th {
-    background-color: #4e4e4e;
-    color: #ffffff;
+    background-color: ${(props) => props.theme.colors.inputHover};
+    color: ${(props) => props.theme.colors.text};
     position: sticky;
     top: 0;
     z-index: 1;
   }
 
   tbody tr:nth-of-type(odd) {
-    background-color: #333333;
+    background-color: ${(props) => props.theme.colors.input};
   }
 
   tbody tr:hover {
-    background-color: #4e4e4e;
+    background-color: ${(props) => props.theme.colors.inputHover};
   }
 `;
 
@@ -100,10 +104,12 @@ const ButtonContainer = styled.div`
 `;
 
 const StyledButton = styled(Button)`
-  background-color: #007bff;
+  background-color: ${(props) => props.theme.colors.accent};
   border: none;
+  color: #fff;
+
   &:hover {
-    background-color: #0056b3;
+    background-color: ${(props) => props.theme.colors.accentHover};
   }
 `;
 

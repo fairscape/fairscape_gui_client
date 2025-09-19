@@ -6,14 +6,17 @@ import SyntaxHighlighter from "react-syntax-highlighter";
 import { vs2015 } from "react-syntax-highlighter/dist/esm/styles/hljs";
 
 export const StyledForm = styled(Form)`
-  background-color: #282828;
+  background-color: ${(props) => props.theme.colors.card};
   padding: 30px;
   border-radius: 10px;
-  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+  box-shadow: ${(props) =>
+    props.theme.name === "light"
+      ? "0 0 10px rgba(0, 0, 0, 0.1)"
+      : "0 0 10px rgba(0, 0, 0, 0.3)"};
 `;
 
 export const FormTitle = styled.h2`
-  color: #ffffff;
+  color: ${(props) => props.theme.colors.text};
   margin-bottom: 30px;
   text-align: center;
 `;
@@ -23,19 +26,19 @@ export const StyledFormGroup = styled(Form.Group)`
 `;
 
 export const StyledLabel = styled(Form.Label)`
-  color: #ffffff;
+  color: ${(props) => props.theme.colors.text};
   font-weight: bold;
 `;
 
 export const StyledInput = styled(Form.Control)`
-  background-color: #3e3e3e;
-  border: 1px solid #555;
-  color: #ffffff;
+  background-color: ${(props) => props.theme.colors.input};
+  border: 1px solid ${(props) => props.theme.colors.borderLight};
+  color: ${(props) => props.theme.colors.text};
   &:focus {
-    background-color: #3e3e3e;
-    color: #ffffff;
-    border-color: #007bff;
-    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+    background-color: ${(props) => props.theme.colors.input};
+    color: ${(props) => props.theme.colors.text};
+    border-color: ${(props) => props.theme.colors.accent};
+    box-shadow: 0 0 0 0.2rem ${(props) => props.theme.colors.accent}40;
   }
 `;
 
@@ -47,55 +50,58 @@ export const StyledTextArea = styled(StyledInput)`
 `;
 
 export const StyledButton = styled(Button)`
-  background-color: #007bff;
+  background-color: ${(props) => props.theme.colors.accent};
   border: none;
-  &:hover {
-    background-color: #0056b3;
-  }
+  color: #fff;
   margin-right: 10px;
+  &:hover {
+    background-color: ${(props) => props.theme.colors.accentHover};
+  }
 `;
 
 export const PreviewContainer = styled.div`
-  background-color: #1e1e1e;
+  background-color: ${(props) =>
+    props.theme.name === "dark" ? "#1e1e1e" : props.theme.colors.card};
   border-radius: 15px;
   height: 100%;
   overflow-y: auto;
+  border: 1px solid ${(props) => props.theme.colors.border};
 `;
 
 export const PreviewTitle = styled.h3`
-  color: #ffffff;
+  color: ${(props) => props.theme.colors.text};
   margin-bottom: 15px;
   text-align: center;
 `;
 
 export const ColumnHeader = styled.h4`
-  color: #ffffff;
+  color: ${(props) => props.theme.colors.text};
   margin-bottom: 10px;
 `;
 
 export const StyledListGroup = styled(ListGroup)`
-  background-color: #3e3e3e;
+  background-color: ${(props) => props.theme.colors.card};
   height: 300px;
   overflow-y: auto;
-  border: 1px solid #555;
+  border: 1px solid ${(props) => props.theme.colors.border};
   border-radius: 4px;
 `;
 
 export const StyledListItem = styled(ListGroup.Item)`
-  background-color: #3e3e3e;
-  color: #ffffff;
-  border-color: #555;
+  background-color: ${(props) => props.theme.colors.input};
+  color: ${(props) => props.theme.colors.text};
+  border-color: ${(props) => props.theme.colors.border};
   &:hover {
-    background-color: #4e4e4e;
+    background-color: ${(props) => props.theme.colors.inputHover};
   }
 `;
 
 export const PropertySection = styled(Card)`
-  background-color: #3e3e3e;
-  border: 1px solid #555;
+  background-color: ${(props) => props.theme.colors.card};
+  border: 1px solid ${(props) => props.theme.colors.border};
   margin-bottom: 20px;
   padding: 20px;
-  color: #ffffff;
+  color: ${(props) => props.theme.colors.text};
 `;
 
 export const PropertyList = styled.div`
@@ -105,29 +111,29 @@ export const PropertyList = styled.div`
 `;
 
 export const PropertyItem = styled.div`
-  background-color: #4e4e4e;
-  border: 1px solid #666;
+  background-color: ${(props) => props.theme.colors.input};
+  border: 1px solid ${(props) => props.theme.colors.borderLight};
   border-radius: 5px;
   padding: 10px;
   margin-bottom: 10px;
-  color: #ffffff;
+  color: ${(props) => props.theme.colors.text};
 `;
 
 export const WhiteText = styled.h4`
-  color: #ffffff;
+  color: ${(props) => props.theme.colors.text};
 `;
 
 export const SchemaOptionsContainer = styled.div`
   padding: 20px;
-  background-color: #282828;
+  background-color: ${(props) => props.theme.colors.card};
   border-radius: 10px;
 `;
 
 export const SchemaOptionCard = styled(Card)`
   margin-bottom: 10px;
-  background-color: #3e3e3e;
-  border: 1px solid #555;
-  color: #ffffff;
+  background-color: ${(props) => props.theme.colors.input};
+  border: 1px solid ${(props) => props.theme.colors.border};
+  color: ${(props) => props.theme.colors.text};
 `;
 
 export const SchemaOptionCardBody = styled(Card.Body)`
@@ -138,11 +144,11 @@ export const SchemaOptionCardBody = styled(Card.Body)`
 
 export const SchemaOptionCardTitle = styled(Card.Title)`
   margin: 0;
-  color: #ffffff;
+  color: ${(props) => props.theme.colors.text};
 `;
 
 export const SchemaOptionCardText = styled(Card.Text)`
-  color: #ffffff;
+  color: ${(props) => props.theme.colors.textSecondary};
 `;
 
 export const FormField = ({

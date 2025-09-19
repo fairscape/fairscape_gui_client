@@ -2,38 +2,48 @@ import styled from "styled-components";
 import { ListGroup, Button, Form, Container } from "react-bootstrap";
 
 export const StyledContainer = styled(Container)`
-  background-color: #282828;
-  color: #ffffff;
+  background-color: ${(props) => props.theme.colors.card};
+  color: ${(props) => props.theme.colors.text};
   padding: 30px;
   border-radius: 10px;
-  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+  box-shadow: ${(props) =>
+    props.theme.name === "light"
+      ? "0 0 10px rgba(0, 0, 0, 0.1)"
+      : "0 0 10px rgba(0, 0, 0, 0.3)"};
 `;
 
 export const StyledTitle = styled.h2`
   margin-bottom: 30px;
   text-align: center;
+  color: ${(props) => props.theme.colors.text};
 `;
 
 export const StyledListGroup = styled(ListGroup)`
-  background-color: #3e3e3e;
+  background-color: ${(props) => props.theme.colors.input};
 `;
 
 export const StyledListGroupItem = styled(ListGroup.Item)`
-  background-color: #3e3e3e;
-  color: ${(props) => (props.isRegistered ? "#888" : "#ffffff")};
-  border-color: #555;
+  background-color: ${(props) => props.theme.colors.input};
+  color: ${(props) =>
+    props.isRegistered
+      ? props.theme.colors.textSecondary
+      : props.theme.colors.text};
+  border-color: ${(props) => props.theme.colors.border};
   cursor: ${(props) => (props.isRegistered ? "not-allowed" : "pointer")};
   pointer-events: ${(props) => (props.isRegistered ? "none" : "auto")};
+
   &:hover {
     background-color: ${(props) =>
-      props.isRegistered ? "#3e3e3e" : "#4e4e4e"};
+      props.isRegistered
+        ? props.theme.colors.input
+        : props.theme.colors.inputHover};
   }
 `;
 
 export const DoiListItem = styled(ListGroup.Item)`
-  background-color: #2d2d2d !important;
-  color: #ffffff;
-  border-color: #555;
+  background-color: ${(props) => props.theme.colors.card} !important;
+  color: ${(props) => props.theme.colors.text};
+  border-color: ${(props) => props.theme.colors.border};
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -41,22 +51,25 @@ export const DoiListItem = styled(ListGroup.Item)`
   padding: 1rem;
   text-align: center;
   font-style: italic;
+
   &:hover {
-    background-color: #3d3d3d !important;
+    background-color: ${(props) => props.theme.colors.inputHover} !important;
   }
 `;
 
 export const StyledButton = styled(Button)`
   margin-right: 10px;
-  background-color: #007bff;
+  background-color: ${(props) => props.theme.colors.accent};
   border: none;
+  color: #fff;
+
   &:hover {
-    background-color: #0056b3;
+    background-color: ${(props) => props.theme.colors.accentHover};
   }
 `;
 
 export const CheckMark = styled.span`
-  color: #28a745;
+  color: ${(props) => props.theme.colors.accent};
   margin-left: 10px;
 `;
 
@@ -80,13 +93,14 @@ export const DoiContainer = styled.div`
 `;
 
 export const DoiInput = styled(Form.Control)`
-  background-color: #3e3e3e;
-  color: #ffffff;
-  border-color: #555;
+  background-color: ${(props) => props.theme.colors.input};
+  color: ${(props) => props.theme.colors.text};
+  border-color: ${(props) => props.theme.colors.border};
+
   &:focus {
-    background-color: #4e4e4e;
-    color: #ffffff;
-    border-color: #007bff;
-    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+    background-color: ${(props) => props.theme.colors.input};
+    color: ${(props) => props.theme.colors.text};
+    border-color: ${(props) => props.theme.colors.accent};
+    box-shadow: 0 0 0 0.2rem ${(props) => props.theme.colors.accent}40;
   }
 `;

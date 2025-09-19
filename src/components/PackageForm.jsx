@@ -4,14 +4,17 @@ import { Form, Button } from "react-bootstrap";
 import { ipcRenderer } from "electron";
 
 const StyledForm = styled(Form)`
-  background-color: #282828;
+  background-color: ${(props) => props.theme.colors.card};
   padding: 15px;
   border-radius: 10px;
-  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+  box-shadow: ${(props) =>
+    props.theme.name === "light"
+      ? "0 0 10px rgba(0, 0, 0, 0.1)"
+      : "0 0 10px rgba(0, 0, 0, 0.3)"};
 `;
 
 const FormTitle = styled.h3`
-  color: #ffffff;
+  color: ${(props) => props.theme.colors.text};
   margin-bottom: 10px;
   text-align: center;
 `;
@@ -21,27 +24,28 @@ const StyledFormGroup = styled(Form.Group)`
 `;
 
 const StyledLabel = styled(Form.Label)`
-  color: #ffffff;
+  color: ${(props) => props.theme.colors.text};
   font-weight: bold;
 `;
 
 const StyledInput = styled(Form.Control)`
-  background-color: #3e3e3e;
-  border: 1px solid #555;
-  color: #ffffff;
+  background-color: ${(props) => props.theme.colors.input};
+  border: 1px solid ${(props) => props.theme.colors.border};
+  color: ${(props) => props.theme.colors.text};
   &:focus {
-    background-color: #3e3e3e;
-    color: #ffffff;
-    border-color: #007bff;
-    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+    background-color: ${(props) => props.theme.colors.input};
+    color: ${(props) => props.theme.colors.text};
+    border-color: ${(props) => props.theme.colors.accent};
+    box-shadow: 0 0 0 0.2rem ${(props) => props.theme.colors.accent}40;
   }
 `;
 
 const StyledButton = styled(Button)`
-  background-color: #007bff;
+  background-color: ${(props) => props.theme.colors.accent};
   border: none;
+  color: #fff;
   &:hover {
-    background-color: #0056b3;
+    background-color: ${(props) => props.theme.colors.accentHover};
   }
 `;
 
@@ -52,25 +56,26 @@ const BrowseButton = styled(Button)`
 const OutputContainer = styled.div`
   margin-top: 20px;
   padding: 10px;
-  background-color: #3e3e3e;
+  background-color: ${(props) => props.theme.colors.input};
   border-radius: 5px;
-  color: #ffffff;
+  color: ${(props) => props.theme.colors.text};
 `;
 
 const StatusContainer = styled.div`
   margin-top: 20px;
-  background-color: #3e3e3e;
+  background-color: ${(props) => props.theme.colors.input};
   border-radius: 10px;
   padding: 20px;
-  color: #ffffff;
+  color: ${(props) => props.theme.colors.text};
 `;
 
 const StatusTitle = styled.h4`
   margin-bottom: 15px;
+  color: ${(props) => props.theme.colors.text};
 `;
 
 const ProgressBarContainer = styled.div`
-  background-color: #282828;
+  background-color: ${(props) => props.theme.colors.card};
   border-radius: 25px;
   height: 30px;
   position: relative;
@@ -84,7 +89,9 @@ const ProgressBar = styled.div`
   top: 0;
   height: 100%;
   background: ${(props) =>
-    props.failed ? "#dc3545" : "linear-gradient(to right, #007bff, #28a745)"};
+    props.failed
+      ? props.theme.colors.error
+      : `linear-gradient(to right, ${props.theme.colors.accent}, ${props.theme.colors.success})`};
   width: ${(props) => props.progress}%;
   transition: width 0.5s ease-in-out, background-color 0.5s ease-in-out;
 `;
@@ -98,7 +105,8 @@ const Step = styled.div`
   flex: 1;
   text-align: center;
   font-weight: ${(props) => (props.active ? "bold" : "normal")};
-  color: ${(props) => (props.active ? "#ffffff" : "#aaaaaa")};
+  color: ${(props) =>
+    props.active ? props.theme.colors.text : props.theme.colors.textSecondary};
 `;
 
 function PackageForm({ rocratePath, setRocratePath, onComplete }) {
@@ -122,20 +130,7 @@ function PackageForm({ rocratePath, setRocratePath, onComplete }) {
     setError(null);
 
     try {
-      // Generate evidence graphs
       setCurrentStep(1);
-      // const evidenceGraphResult = await ipcRenderer.invoke(
-      //   "generate-evidence-graphs",
-      //   rocratePath
-      // );
-      // if (evidenceGraphResult.success) {
-      //   setOutput(
-      //     (prevOutput) =>
-      //       prevOutput + "\nEvidence graphs generated successfully."
-      //   );
-      // } else {
-      //   throw new Error(evidenceGraphResult.error);
-      // }
 
       // Zip the updated RO-Crate
       setCurrentStep(2);

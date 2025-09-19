@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { ThemeProvider } from "./themes";
 import InitForm from "./components/InitForm";
 import FileSelector from "./components/Register/FileSelector";
 import ComputationForm from "./components/Register/ComputationForm";
@@ -21,12 +22,9 @@ function App() {
   const [registeredFiles, setRegisteredFiles] = useState([]);
 
   useEffect(() => {
-    // Check for existing auth token on component mount
     const token = localStorage.getItem("authToken");
     if (token) {
-      // You might want to validate the token here
       setIsLoggedIn(true);
-      // You might want to fetch user data here based on the token
     }
   }, []);
 
@@ -48,7 +46,7 @@ function App() {
   };
 
   const handleComputationComplete = () => {
-    setCurrentView("review"); // Change to review step after computation
+    setCurrentView("review");
   };
 
   const handleReviewComplete = () => {
@@ -70,7 +68,7 @@ function App() {
     setIsLoggedIn(false);
     setUserData(null);
     localStorage.removeItem("authToken");
-    setCurrentView("questionnaire"); // Reset to initial view
+    setCurrentView("questionnaire");
   };
 
   const handleFileRegister = (newFiles) => {
@@ -133,17 +131,19 @@ function App() {
   };
 
   return (
-    <AppContainer>
-      <SidebarComponent
-        selectedView={currentView}
-        handleViewSelect={handleViewSelect}
-        isLoggedIn={isLoggedIn}
-        userData={userData}
-        onLogin={handleLogin}
-        onLogout={handleLogout}
-      />
-      <MainContentWrapper>{renderMainContent()}</MainContentWrapper>
-    </AppContainer>
+    <ThemeProvider>
+      <AppContainer>
+        <SidebarComponent
+          selectedView={currentView}
+          handleViewSelect={handleViewSelect}
+          isLoggedIn={isLoggedIn}
+          userData={userData}
+          onLogin={handleLogin}
+          onLogout={handleLogout}
+        />
+        <MainContentWrapper>{renderMainContent()}</MainContentWrapper>
+      </AppContainer>
+    </ThemeProvider>
   );
 }
 

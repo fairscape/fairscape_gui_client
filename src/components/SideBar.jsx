@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { jwtDecode } from "jwt-decode";
 import styled from "styled-components";
+import { useTheme } from "../themes";
 import LoginComponent from "./LoginComponent";
 import {
   Sidebar,
@@ -8,21 +9,42 @@ import {
   SidebarItem,
   SidebarFooter,
 } from "./StyledComponents";
-import logoSvg from "../assets/logo.svg";
 
-const accentColor = "#007bff";
-const accentColorHover = "#0056b3";
+import logoDark from "../assets/logo_dark.svg";
+import logoLight from "../assets/logo_light.svg";
 
-const UserProfileContainer = styled.div`
-  position: relative;
-  width: 100%;
+const ThemeSwitcher = styled.div`
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  border: 1px solid ${(props) => props.theme.colors.border};
+  border-radius: 4px;
+  overflow: hidden;
+`;
+
+const ThemeOption = styled.button`
+  flex: 1;
+  padding: 8px;
+  background-color: ${(props) =>
+    props.active ? props.theme.colors.accent : props.theme.colors.input};
+  color: ${(props) =>
+    props.active ? "#fff" : props.theme.colors.textSecondary};
+  border: none;
+  cursor: ${(props) => (props.active ? "default" : "pointer")};
+  font-weight: ${(props) => (props.active ? "bold" : "normal")};
+  transition: background-color 0.2s;
+
+  &:hover {
+    background-color: ${(props) =>
+      props.active ? props.theme.colors.accent : props.theme.colors.inputHover};
+  }
 `;
 
 const UserCircle = styled.div`
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  background-color: ${accentColor};
+  background-color: ${(props) => props.theme.colors.accent};
   color: white;
   display: flex;
   align-items: center;
@@ -32,7 +54,7 @@ const UserCircle = styled.div`
   transition: background-color 0.2s;
 
   &:hover {
-    background-color: ${accentColorHover};
+    background-color: ${(props) => props.theme.colors.accentHover};
   }
 `;
 
@@ -41,8 +63,8 @@ const DropdownMenu = styled.div`
   bottom: 100%;
   left: 0;
   right: 0;
-  background-color: #282828;
-  border: 1px solid #444;
+  background-color: ${(props) => props.theme.colors.card};
+  border: 1px solid ${(props) => props.theme.colors.border};
   border-radius: 4px;
   padding: 15px;
   z-index: 1000;
@@ -52,26 +74,29 @@ const DropdownMenu = styled.div`
   box-sizing: border-box;
 `;
 
-const UserInfo = styled.p`
-  margin: 5px 0;
-  color: #fff;
-  font-size: 14px;
-  word-break: break-word;
+const UserProfileContainer = styled.div`
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+`;
+
+const UserInfo = styled.div`
+  margin-bottom: 8px;
+  color: ${(props) => props.theme.colors.text};
 `;
 
 const LogoutButton = styled.button`
-  background-color: #dc3545;
+  width: 100%;
+  padding: 6px;
+  background-color: ${(props) => props.theme.colors.danger};
   color: white;
   border: none;
-  padding: 8px 12px;
   border-radius: 4px;
   cursor: pointer;
-  margin-top: 10px;
-  transition: background-color 0.2s;
-  width: 100%;
 
   &:hover {
-    background-color: #c82333;
+    background-color: ${(props) => props.theme.colors.dangerHover};
   }
 `;
 
@@ -85,6 +110,7 @@ function SidebarComponent({
 }) {
   const [dropdownVisible, setDropdownVisible] = useState(false);
   const [user, setUser] = useState(null);
+  const { currentTheme, toggleTheme } = useTheme();
 
   useEffect(() => {
     if (isLoggedIn && userData) {
@@ -137,7 +163,7 @@ function SidebarComponent({
       <SidebarContent>
         <div style={{ marginBottom: "20px", textAlign: "center" }}>
           <img
-            src={logoSvg}
+            src={currentTheme === "dark" ? logoDark : logoLight}
             alt="FAIRSCAPE ROCrate Repository"
             style={{ maxWidth: "100%", height: "auto" }}
           />
@@ -159,6 +185,24 @@ function SidebarComponent({
         ))}
       </SidebarContent>
       <SidebarFooter>
+        <ThemeSwitcher>
+          <ThemeOption
+            active={currentTheme === "dark"}
+            onClick={() =>
+              currentTheme !== "dark" ? toggleTheme() : undefined
+            }
+          >
+            🌙 Dark
+          </ThemeOption>
+          <ThemeOption
+            active={currentTheme === "light"}
+            onClick={() =>
+              currentTheme !== "light" ? toggleTheme() : undefined
+            }
+          >
+            ☀️ Light
+          </ThemeOption>
+        </ThemeSwitcher>
         {isLoggedIn && user ? (
           <UserProfileContainer>
             {dropdownVisible && (

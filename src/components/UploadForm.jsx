@@ -5,14 +5,17 @@ import axios from "axios";
 import StatusTracker from "./StatusTracker";
 
 const StyledForm = styled(Form)`
-  background-color: #282828;
+  background-color: ${(props) => props.theme.colors.card};
   padding: 30px;
   border-radius: 10px;
-  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+  box-shadow: ${(props) =>
+    props.theme.name === "light"
+      ? "0 0 10px rgba(0, 0, 0, 0.1)"
+      : "0 0 10px rgba(0, 0, 0, 0.3)"};
 `;
 
 const FormTitle = styled.h2`
-  color: #ffffff;
+  color: ${(props) => props.theme.colors.text};
   margin-bottom: 30px;
   text-align: center;
 `;
@@ -22,14 +25,14 @@ const StyledFormGroup = styled(Form.Group)`
 `;
 
 const StyledLabel = styled(Form.Label)`
-  color: #ffffff;
+  color: ${(props) => props.theme.colors.text};
   font-weight: bold;
   display: flex;
   align-items: center;
 `;
 
 const CrateNameDisplay = styled.span`
-  color: #ffffff;
+  color: ${(props) => props.theme.colors.text};
   margin-left: 10px;
 `;
 
@@ -38,20 +41,21 @@ const HiddenCrateInput = styled.input`
 `;
 
 const CrateSelectionButton = styled(Button)`
-  background-color: #3e3e3e;
-  border: 1px solid #555;
-  color: #ffffff;
+  background-color: ${(props) => props.theme.colors.input};
+  border: 1px solid ${(props) => props.theme.colors.border};
+  color: ${(props) => props.theme.colors.text};
   margin-top: 10px;
   &:hover {
-    background-color: #4e4e4e;
+    background-color: ${(props) => props.theme.colors.inputHover};
   }
 `;
 
 const StyledButton = styled(Button)`
-  background-color: #007bff;
+  background-color: ${(props) => props.theme.colors.accent};
   border: none;
+  color: #fff;
   &:hover {
-    background-color: #0056b3;
+    background-color: ${(props) => props.theme.colors.accentHover};
   }
 `;
 

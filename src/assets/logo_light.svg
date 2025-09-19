@@ -1,0 +1,8 @@
+<?xml version="1.0"?>
+<svg width="100" height="100" xmlns="http://www.w3.org/2000/svg" xmlns:svg="http://www.w3.org/2000/svg">
+  <rect fill="none" height="100" id="svg_1" width="100"/>
+  <path d="m30,30l40,0m-40,20l40,0m-40,20l40,0" id="svg_4" stroke="currentColor"/>
+  <path d="m40,20l0,60m20,-60l0,60" id="svg_5" stroke="currentColor"/>
+  <text fill="currentColor" font-family="Serif" font-size="24" id="svg_9" lengthAdjust="spacing" stroke="currentColor" stroke-width="0" text-anchor="middle" transform="matrix(0.941796, 0, 0, 3.20248, 1.68373, -190.377)" x="22.66" y="80.57">{</text>
+  <text fill="currentColor" font-family="Serif" font-size="24" id="svg_10" stroke="currentColor" stroke-width="0" text-anchor="middle" transform="matrix(1.17464, 0, 0, 3.16941, -15.6743, -189.781)" x="79.17" y="81.01">}</text>
+</svg>

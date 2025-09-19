@@ -30,6 +30,7 @@ const PackageTypeQuestion = styled.h2`
   font-size: 24px;
   margin-bottom: 20px;
   text-align: center;
+  color: ${(props) => props.theme.colors.text};
 `;
 
 const PackageTypeOptions = styled.div`
@@ -40,25 +41,33 @@ const PackageTypeOptions = styled.div`
 `;
 
 const PackageTypeOption = styled.div`
-  background-color: ${(props) => (props.selected ? "#2196F3" : "#3e3e3e")};
+  background-color: ${(props) =>
+    props.selected ? props.theme.colors.accent : props.theme.colors.input};
   border-radius: 8px;
   padding: 20px;
   width: 300px;
   cursor: pointer;
   transition: all 0.3s ease;
+  color: ${(props) =>
+    props.selected ? "#fff" : props.theme.colors.textSecondary};
 
   &:hover {
-    background-color: ${(props) => (props.selected ? "#2196F3" : "#4e4e4e")};
+    background-color: ${(props) =>
+      props.selected
+        ? props.theme.colors.accent
+        : props.theme.colors.inputHover};
   }
 `;
 
 const OptionTitle = styled.h3`
   font-size: 20px;
   margin-bottom: 10px;
+  color: ${(props) => props.theme.colors.text};
 `;
 
 const OptionDescription = styled.p`
   font-size: 16px;
+  color: ${(props) => props.theme.colors.textSecondary};
 `;
 
 const ButtonContainer = styled.div`

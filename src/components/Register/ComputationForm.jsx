@@ -17,6 +17,7 @@ import {
   StyledListItem,
   ColumnHeader,
 } from "./SharedComponents";
+import { useTheme } from "../../themes";
 
 function ComputationForm({ rocratePath, onComplete, onSkip }) {
   const [showForm, setShowForm] = useState(false);
@@ -35,6 +36,7 @@ function ComputationForm({ rocratePath, onComplete, onSkip }) {
   });
   const [jsonLdPreview, setJsonLdPreview] = useState({});
   const [hasExistingComputations, setHasExistingComputations] = useState(false);
+  const { theme } = useTheme();
 
   const loadRegisteredFiles = async () => {
     try {
@@ -259,11 +261,12 @@ function ComputationForm({ rocratePath, onComplete, onSkip }) {
     return (
       <StyledForm>
         <FormTitle>Record Computations</FormTitle>
-        <p style={{ color: "#ffffff" }}>
+        <p style={{ color: theme.colors.text }}>
           {hasExistingComputations
             ? "Would you like to register another computation?"
             : "Would you like to record any computations that were run to create the files?"}
         </p>
+
         <StyledButton
           onClick={() => {
             setShowForm(true);
