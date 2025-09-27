@@ -2,7 +2,7 @@ import React from "react";
 import InitForm from "./InitForm";
 import PackageForm from "./PackageForm";
 import UploadForm from "./UploadForm";
-import Register from "./Register/FileSelector";
+import Register from "./Register/FileSelectorOrchestrator";
 
 function MainContent({ currentView, rocratePath, setRocratePath }) {
   switch (currentView) {

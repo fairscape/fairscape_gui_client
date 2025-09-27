@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Row, Col, Modal } from "react-bootstrap";
+import { Row, Col, Modal, Form } from "react-bootstrap";
 import { rocrate_create } from "@fairscape/utils";
 import { ipcRenderer } from "electron";
 import fs from "fs/promises";
@@ -76,6 +76,28 @@ const ButtonContainer = styled.div`
   margin-top: 20px;
 `;
 
+const CheckboxContainer = styled.div`
+  display: flex;
+  align-items: center;
+  margin: 20px 0;
+  padding: 15px;
+  background-color: ${(props) => props.theme.colors.inputBackground};
+  border-radius: 8px;
+`;
+
+const CheckboxLabel = styled.label`
+  color: ${(props) => props.theme.colors.text};
+  margin-left: 10px;
+  cursor: pointer;
+  user-select: none;
+`;
+
+const CheckboxInput = styled.input`
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
+`;
+
 const LICENSE_OPTIONS = [
   {
     label: "CC BY 4.0",
@@ -150,6 +172,7 @@ function InitForm({ rocratePath, setRocratePath, onSuccess }) {
     packageType: "",
     author: "",
     license: LICENSE_OPTIONS[0].value,
+    autoComplete: true,
   });
 
   const [jsonLdPreview, setJsonLdPreview] = useState({});
@@ -162,6 +185,10 @@ function InitForm({ rocratePath, setRocratePath, onSuccess }) {
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  const handleCheckboxChange = (e) => {
+    setFormData({ ...formData, [e.target.name]: e.target.checked });
   };
 
   const handlePackageTypeSelect = (type) => {
@@ -196,6 +223,7 @@ function InitForm({ rocratePath, setRocratePath, onSuccess }) {
       author: formData.author,
       packageType: formData.packageType,
       license: formData.license,
+      autoComplete: formData.autoComplete,
     };
 
     if (formData.organization_name) {
@@ -276,7 +304,8 @@ function InitForm({ rocratePath, setRocratePath, onSuccess }) {
         formData.keywords,
         formData.packageType,
         guid,
-        formData.license
+        formData.license,
+        formData.autoComplete
       );
       console.log(result);
       onSuccess();
@@ -449,6 +478,19 @@ function InitForm({ rocratePath, setRocratePath, onSuccess }) {
                 placeholder="Enter keywords separated by commas"
                 required
               />
+
+              <CheckboxContainer>
+                <CheckboxInput
+                  type="checkbox"
+                  id="autoComplete"
+                  name="autoComplete"
+                  checked={formData.autoComplete}
+                  onChange={handleCheckboxChange}
+                />
+                <CheckboxLabel htmlFor="autoComplete">
+                  Autocomplete Dataset/Software Metadata
+                </CheckboxLabel>
+              </CheckboxContainer>
 
               <ButtonContainer>
                 <StyledButton type="submit">Initialize RO-Crate</StyledButton>

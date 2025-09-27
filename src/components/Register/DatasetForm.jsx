@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Row, Col } from "react-bootstrap";
 import { register_dataset } from "@fairscape/utils";
+import { updateFileMetadata } from "./Utils/autoRegisterUtils";
 import path from "path";
 import {
   StyledForm,
@@ -17,6 +18,28 @@ import HDF5SchemaForm from "./SchemaComponents/HDF5SchemaForm";
 import SchemaOptions from "./SchemaOptions";
 import { generateGuid, createJsonLdPreview } from "./Utils/datasetUtils";
 import { processDoiMetadata } from "./Utils/doiMetadataUtils";
+import styled from "styled-components";
+
+const ReadOnlyField = styled.div`
+  margin-bottom: 15px;
+`;
+
+const ReadOnlyLabel = styled.label`
+  display: block;
+  color: ${(props) => props.theme.colors.textSecondary};
+  margin-bottom: 5px;
+  font-size: 14px;
+`;
+
+const ReadOnlyValue = styled.div`
+  background-color: ${(props) =>
+    props.theme.colors.disabledBackground || "#2a2a2a"};
+  color: ${(props) => props.theme.colors.textSecondary};
+  padding: 10px;
+  border-radius: 4px;
+  border: 1px solid ${(props) => props.theme.colors.border || "#3e3e3e"};
+  font-family: monospace;
+`;
 
 const initialFormState = {
   name: "",
@@ -34,7 +57,15 @@ const initialFormState = {
   "additional-documentation": "",
 };
 
-function DatasetForm({ file, onBack, rocratePath, onSuccess, doiMetadata }) {
+function DatasetForm({
+  file,
+  onBack,
+  rocratePath,
+  onSuccess,
+  doiMetadata,
+  mode = "create",
+  existingMetadata,
+}) {
   const [formData, setFormData] = useState(initialFormState);
   const [jsonLdPreview, setJsonLdPreview] = useState({});
   const [showSchemaOptions, setShowSchemaOptions] = useState(false);
@@ -44,9 +75,23 @@ function DatasetForm({ file, onBack, rocratePath, onSuccess, doiMetadata }) {
   const [showSchemaUpload, setShowSchemaUpload] = useState(false);
   const [pendingRegistration, setPendingRegistration] = useState(false);
   const [schemaGuid, setSchemaGuid] = useState(null);
+  const [fileStats, setFileStats] = useState({ md5: "", contentSize: "" });
 
   useEffect(() => {
-    if (file === "doi" && doiMetadata) {
+    if (mode === "edit" && existingMetadata) {
+      setFormData(existingMetadata);
+      setSchemaGuid(existingMetadata.schema);
+      setJsonLdPreview(
+        createJsonLdPreview(existingMetadata, existingMetadata.schema)
+      );
+
+      if (existingMetadata.md5) {
+        setFileStats({
+          md5: existingMetadata.md5,
+          contentSize: existingMetadata.contentSize || "",
+        });
+      }
+    } else if (file === "doi" && doiMetadata) {
       const newData = processDoiMetadata(doiMetadata);
       setFormData(newData);
       setJsonLdPreview(createJsonLdPreview(newData, schemaGuid));
@@ -65,7 +110,7 @@ function DatasetForm({ file, onBack, rocratePath, onSuccess, doiMetadata }) {
       setFormData(newData);
       setJsonLdPreview(createJsonLdPreview(newData, schemaGuid));
     }
-  }, [file, doiMetadata]);
+  }, [file, doiMetadata, mode, existingMetadata]);
 
   const handleChange = (e) => {
     const newData = { ...formData, [e.target.name]: e.target.value };
@@ -73,10 +118,21 @@ function DatasetForm({ file, onBack, rocratePath, onSuccess, doiMetadata }) {
     setJsonLdPreview(createJsonLdPreview(newData, schemaGuid));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setPendingRegistration(true);
-    setShowSchemaOptions(true);
+
+    if (mode === "edit") {
+      try {
+        await updateFileMetadata(rocratePath, file, formData, "dataset");
+        onSuccess();
+      } catch (error) {
+        console.error("Error updating dataset:", error);
+        setPendingRegistration(false);
+      }
+    } else {
+      setShowSchemaOptions(true);
+    }
   };
 
   const handleSchemaOptionSelect = (action) => {
@@ -109,24 +165,37 @@ function DatasetForm({ file, onBack, rocratePath, onSuccess, doiMetadata }) {
   const registerDataset = (schemaGuid = null) => {
     const guid = generateGuid(formData.name);
     const fullFilePath = file === "doi" ? "" : path.join(rocratePath, file);
-    const result = register_dataset(
-      rocratePath,
-      formData.name,
-      formData.author,
-      formData.version,
-      formData["date-published"],
-      formData.description,
-      formData.keywords,
-      formData["data-format"],
-      fullFilePath,
-      guid,
-      formData.url,
-      formData["used-by"],
-      formData["derived-from"],
-      schemaGuid,
-      formData["associated-publication"],
-      formData["additional-documentation"]
-    );
+
+    const datasetParams = {
+      name: formData.name,
+      author: formData.author,
+      version: formData.version,
+      "date-published": formData["date-published"],
+      description: formData.description,
+      keywords: formData.keywords,
+      "data-format": formData["data-format"],
+      "@id": guid,
+      url: formData.url,
+      "used-by": formData["used-by"],
+      "derived-from": formData["derived-from"],
+      "associated-publication": formData["associated-publication"],
+      "additional-documentation": formData["additional-documentation"],
+    };
+
+    if (schemaGuid) {
+      datasetParams.conformsTo = schemaGuid;
+    }
+
+    if (formData.md5) {
+      datasetParams.md5 = formData.md5;
+    }
+
+    if (formData.contentSize) {
+      datasetParams.contentSize = formData.contentSize;
+    }
+
+    const result = register_dataset(rocratePath, datasetParams, fullFilePath);
+
     console.log(result);
     setPendingRegistration(false);
     onSuccess();
@@ -183,9 +252,7 @@ function DatasetForm({ file, onBack, rocratePath, onSuccess, doiMetadata }) {
   return (
     <StyledForm onSubmit={handleSubmit}>
       <FormTitle>
-        {file === "doi"
-          ? "Register Publication/Dataset from DOI"
-          : `Register Dataset: ${file}`}
+        {mode === "edit" ? "Edit" : "Register"} Dataset: {file}
       </FormTitle>
       <Row>
         <Col md={6}>
@@ -242,8 +309,29 @@ function DatasetForm({ file, onBack, rocratePath, onSuccess, doiMetadata }) {
             onChange={handleChange}
             required
           />
+
+          {fileStats.md5 && (
+            <>
+              <ReadOnlyField>
+                <ReadOnlyLabel>MD5 Checksum</ReadOnlyLabel>
+                <ReadOnlyValue>{fileStats.md5}</ReadOnlyValue>
+              </ReadOnlyField>
+
+              <ReadOnlyField>
+                <ReadOnlyLabel>Content Size (bytes)</ReadOnlyLabel>
+                <ReadOnlyValue>{fileStats.contentSize}</ReadOnlyValue>
+              </ReadOnlyField>
+            </>
+          )}
+
           <StyledButton type="submit">
-            {pendingRegistration ? "Registering..." : "Register Dataset"}
+            {pendingRegistration
+              ? mode === "edit"
+                ? "Updating..."
+                : "Registering..."
+              : mode === "edit"
+              ? "Update Dataset"
+              : "Register Dataset"}
           </StyledButton>
           <StyledButton onClick={onBack} variant="secondary">
             Back

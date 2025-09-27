@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { ThemeProvider } from "./themes";
 import InitForm from "./components/InitForm";
-import FileSelector from "./components/Register/FileSelector";
+import FileSelectorOrchestrator from "./components/Register/FileSelectorOrchestrator";
 import ComputationForm from "./components/Register/ComputationForm";
 import Review from "./components/Review";
 import PackageForm from "./components/PackageForm";
@@ -89,12 +89,12 @@ function App() {
         );
       case "register":
         return (
-          <FileSelector
+          <FileSelectorOrchestrator
             rocratePath={rocratePath}
             setRocratePath={setRocratePath}
             onDoneRegistering={handleDoneRegistering}
             onSkipComputations={handleComputationComplete}
-            onFileRegister={handleInitSuccess}
+            onFileRegister={handleFileRegister}
             onInitRequired={handleInitRequired}
           />
         );
