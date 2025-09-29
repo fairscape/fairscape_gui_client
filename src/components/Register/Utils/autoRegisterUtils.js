@@ -49,7 +49,9 @@ export const generateAutoMetadata = async (
   fileType,
   roCrateMetadata
 ) => {
-  const fullPath = path.join(rocratePath, filePath);
+  const fullPath = path.isAbsolute(filePath)
+    ? filePath
+    : path.join(rocratePath, filePath);
   const { contentSize, dateModified } = await getFileStats(fullPath);
   const md5 = await calculateMD5(fullPath);
   const fileName = path
@@ -115,25 +117,37 @@ export const autoRegisterFile = async (
     fileType,
     roCrateMetadata
   );
-  const fullFilePath = path.join(rocratePath, filePath);
+  const fullFilePath = path.isAbsolute(filePath)
+    ? filePath
+    : path.join(rocratePath, filePath);
   const guid = generateGuid(metadata.name, fileType);
 
   let schemaGuid = null;
+
+  if (typeof metadata.keywords === "string") {
+    metadata.keywords = metadata.keywords
+      .split(",")
+      .map((keyword) => keyword.trim());
+  }
 
   if (fileType === "dataset") {
     const fileExtension = filePath.toLowerCase().split(".").pop();
 
     if (["csv", "tsv"].includes(fileExtension)) {
       try {
+        const relativePath = path.isAbsolute(filePath)
+          ? path.relative(rocratePath, filePath)
+          : filePath;
+
         const schemaJSON = await ipcRenderer.invoke(
           "convert-csv-to-schema",
           rocratePath,
-          fullFilePath
+          relativePath
         );
 
         const schemaId = generateGuid(`${metadata.name}-schema`, "schema");
 
-        register_schema(
+        schemaGuid = await register_schema(
           rocratePath,
           schemaJSON.name || `${metadata.name} Schema`,
           schemaJSON.description ||
@@ -147,48 +161,55 @@ export const autoRegisterFile = async (
           true,
           []
         );
-
-        schemaGuid = schemaId;
       } catch (error) {
         console.error(`Failed to generate schema for ${filePath}:`, error);
       }
     }
 
-    register_dataset(
-      rocratePath,
-      metadata.name,
-      metadata.author,
-      metadata.version,
-      metadata.datePublished,
-      metadata.description,
-      metadata.keywords,
-      metadata["data-format"],
-      fullFilePath,
-      guid,
-      metadata.url,
-      metadata["used-by"],
-      metadata["derived-from"],
-      schemaGuid,
-      metadata["associated-publication"],
-      metadata["additional-documentation"]
-    );
+    const datasetParams = {
+      name: metadata.name,
+      author: metadata.author,
+      version: metadata.version,
+      datePublished: metadata.datePublished,
+      description: metadata.description,
+      keywords: metadata.keywords,
+      format: metadata["data-format"],
+      "@id": guid,
+      url: metadata.url,
+      usedBy: metadata["used-by"],
+      derivedFrom: metadata["derived-from"],
+      associatedPublication: metadata["associated-publication"],
+      additionalDocumentation: metadata["additional-documentation"],
+      contentSize: metadata.contentSize,
+      md5: metadata.md5,
+    };
+
+    if (schemaGuid) {
+      datasetParams["evi:Schema"] = {
+        "@id": schemaGuid,
+      };
+    }
+
+    register_dataset(rocratePath, datasetParams, fullFilePath);
   } else {
-    register_software(
-      rocratePath,
-      metadata.name,
-      metadata.author,
-      metadata.version,
-      metadata.description,
-      metadata.keywords,
-      metadata["file-format"],
-      guid,
-      metadata.url,
-      metadata["date-modified"],
-      fullFilePath,
-      metadata["used-by-computation"],
-      metadata["associated-publication"],
-      metadata["additional-documentation"]
-    );
+    const softwareParams = {
+      name: metadata.name,
+      author: metadata.author,
+      version: metadata.version,
+      description: metadata.description,
+      keywords: metadata.keywords,
+      format: metadata["file-format"],
+      "@id": guid,
+      url: metadata.url,
+      dateModified: metadata["date-modified"],
+      usedByComputation: metadata["used-by-computation"],
+      associatedPublication: metadata["associated-publication"],
+      additionalDocumentation: metadata["additional-documentation"],
+      contentSize: metadata.contentSize,
+      md5: metadata.md5,
+    };
+
+    register_software(rocratePath, softwareParams, fullFilePath);
   }
 
   await new Promise((resolve) => setTimeout(resolve, 250));

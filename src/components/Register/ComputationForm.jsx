@@ -169,27 +169,20 @@ function ComputationForm({ rocratePath, onComplete, onSkip }) {
       .toLowerCase()
       .replace(/\s+/g, "-")}-${Date.now()}`;
     const options = {
-      ...formData,
-      guid,
+      "@type": "https://w3id.org/EVI#Computation",
+      name: formData.name,
+      description: formData.description,
+      keywords: formData.keywords.split(",").map((k) => k.trim()),
+      "@id": guid,
+      runBy: formData["run-by"],
+      dateCreated: formData["date-created"],
       command: "",
-      "used-software": fileColumns.software.map((file) => file.guid),
-      "used-dataset": fileColumns.inputs.map((file) => file.guid),
-      generated: fileColumns.outputs.map((file) => file.guid),
+      usedSoftware: fileColumns.software.map((file) => ({ "@id": file.guid })),
+      usedDataset: fileColumns.inputs.map((file) => ({ "@id": file.guid })),
+      generated: fileColumns.outputs.map((file) => ({ "@id": file.guid })),
     };
 
-    const result = register_computation(
-      rocratePath,
-      options.name,
-      options["run-by"],
-      options["date-created"],
-      options.description,
-      options.keywords,
-      options.guid,
-      options.command,
-      options["used-software"],
-      options["used-dataset"],
-      options.generated
-    );
+    const result = register_computation(rocratePath, options);
 
     console.log(result);
     setFormData({

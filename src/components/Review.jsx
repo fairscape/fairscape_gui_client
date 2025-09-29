@@ -123,7 +123,7 @@ const TableRowComponent = ({ item, rocratePath, jsonLdData }) => {
     jsonLdData["@graph"].find(
       (entry) =>
         entry["@id"] === item.guid &&
-        entry.schema &&
+        (entry.schema || entry["evi:Schema"]) &&
         entry["@type"].includes("Dataset")
     );
 
@@ -152,7 +152,6 @@ const TableRowComponent = ({ item, rocratePath, jsonLdData }) => {
       throw new Error(`Validation failed: ${error.message}`);
     }
   };
-
   return (
     <TableRow unregistered={!item.isRegistered}>
       <td>{item.name}</td>
@@ -238,7 +237,7 @@ function Review({ rocratePath, onContinue, setRocratePath, onInitRequired }) {
               isRegistered = true;
               name = graphItem.name || file;
               guid = graphItem["@id"] || "";
-              schema = graphItem["schema"] || "";
+              schema = graphItem["evi:Schema"] || "";
             }
 
             return {

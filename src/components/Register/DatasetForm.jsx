@@ -77,39 +77,72 @@ function DatasetForm({
   const [schemaGuid, setSchemaGuid] = useState(null);
   const [fileStats, setFileStats] = useState({ md5: "", contentSize: "" });
 
-  useEffect(() => {
-    if (mode === "edit" && existingMetadata) {
-      setFormData(existingMetadata);
-      setSchemaGuid(existingMetadata.schema);
-      setJsonLdPreview(
-        createJsonLdPreview(existingMetadata, existingMetadata.schema)
-      );
+  const calculateFileStats = async (filePath) => {
+    try {
+      const crypto = require("crypto");
+      const fs = require("fs");
 
-      if (existingMetadata.md5) {
-        setFileStats({
-          md5: existingMetadata.md5,
-          contentSize: existingMetadata.contentSize || "",
-        });
-      }
-    } else if (file === "doi" && doiMetadata) {
-      const newData = processDoiMetadata(doiMetadata);
-      setFormData(newData);
-      setJsonLdPreview(createJsonLdPreview(newData, schemaGuid));
-    } else if (file !== "doi") {
-      const fileName = path
-        .basename(file, path.extname(file))
-        .replace(/_/g, " ");
-      const fileExtension = path.extname(file).slice(1).toUpperCase();
+      const fileBuffer = await fs.promises.readFile(filePath);
+      const md5Hash = crypto.createHash("md5").update(fileBuffer).digest("hex");
+      const size = fileBuffer.length;
 
-      const newData = {
-        ...formData,
-        name: fileName,
-        "data-format": fileExtension,
+      return {
+        md5: md5Hash,
+        contentSize: size.toString(),
       };
-
-      setFormData(newData);
-      setJsonLdPreview(createJsonLdPreview(newData, schemaGuid));
+    } catch (error) {
+      console.error("Error calculating file stats:", error);
+      return { md5: "", contentSize: "" };
     }
+  };
+
+  useEffect(() => {
+    const initializeForm = async () => {
+      if (mode === "edit" && existingMetadata) {
+        setFormData(existingMetadata);
+        setSchemaGuid(existingMetadata.schema);
+        setJsonLdPreview(
+          createJsonLdPreview(existingMetadata, existingMetadata.schema)
+        );
+
+        if (existingMetadata.md5 && existingMetadata.contentSize) {
+          setFileStats({
+            md5: existingMetadata.md5,
+            contentSize: existingMetadata.contentSize,
+          });
+        } else if (file !== "doi") {
+          const fullFilePath = path.join(rocratePath, file);
+          const stats = await calculateFileStats(fullFilePath);
+          setFileStats(stats);
+          setFormData((prev) => ({ ...prev, ...stats }));
+        }
+      } else if (file === "doi" && doiMetadata) {
+        const newData = processDoiMetadata(doiMetadata);
+        setFormData(newData);
+        setJsonLdPreview(createJsonLdPreview(newData, schemaGuid));
+      } else if (file !== "doi") {
+        const fileName = path
+          .basename(file, path.extname(file))
+          .replace(/_/g, " ");
+        const fileExtension = path.extname(file).slice(1).toUpperCase();
+
+        const fullFilePath = path.join(rocratePath, file);
+        const stats = await calculateFileStats(fullFilePath);
+
+        const newData = {
+          ...formData,
+          name: fileName,
+          "data-format": fileExtension,
+          ...stats,
+        };
+
+        setFormData(newData);
+        setFileStats(stats);
+        setJsonLdPreview(createJsonLdPreview(newData, schemaGuid));
+      }
+    };
+
+    initializeForm();
   }, [file, doiMetadata, mode, existingMetadata]);
 
   const handleChange = (e) => {
@@ -173,17 +206,19 @@ function DatasetForm({
       "date-published": formData["date-published"],
       description: formData.description,
       keywords: formData.keywords,
-      "data-format": formData["data-format"],
+      format: formData["data-format"],
       "@id": guid,
       url: formData.url,
-      "used-by": formData["used-by"],
-      "derived-from": formData["derived-from"],
-      "associated-publication": formData["associated-publication"],
-      "additional-documentation": formData["additional-documentation"],
+      usedBy: formData["used-by"],
+      derivedFrom: formData["derived-from"],
+      associatedPublication: formData["associated-publication"],
+      additionalDocumentation: formData["additional-documentation"],
     };
 
     if (schemaGuid) {
-      datasetParams.conformsTo = schemaGuid;
+      datasetParams["evi:Schema"] = {
+        "@id": schemaGuid,
+      };
     }
 
     if (formData.md5) {

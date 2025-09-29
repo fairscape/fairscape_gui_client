@@ -297,15 +297,19 @@ function InitForm({ rocratePath, setRocratePath, onSuccess }) {
       const result = rocrate_create(
         rocratePath,
         formData.name,
+        formData.description,
+        formData.keywords,
+        formData.author,
+        formData.license,
+        "1.0.0",
+        guid,
         organization?.guid || null,
         project?.guid || null,
-        formData.description,
-        formData.author,
-        formData.keywords,
-        formData.packageType,
-        guid,
-        formData.license,
-        formData.autoComplete
+        null,
+        {
+          packageType: formData.packageType,
+          autoComplete: formData.autoComplete,
+        }
       );
       console.log(result);
       onSuccess();
