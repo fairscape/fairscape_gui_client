@@ -70,13 +70,7 @@ async function convertFileToSchemaJSON(rocratePath, filePath) {
     return {
       name: schema.name,
       description: schema.description,
-      properties: Object.entries(schema.properties).map(([name, prop]) => ({
-        name,
-        description: prop.description,
-        index: prop.index,
-        valueURL: prop.valueURL || "",
-        type: prop.type,
-      })),
+      properties: schema.properties,
       separator: schema.separator,
       header: schema.header,
     };
