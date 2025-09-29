@@ -203,7 +203,7 @@ function DatasetForm({
       name: formData.name,
       author: formData.author,
       version: formData.version,
-      "date-published": formData["date-published"],
+      datePublished: formData["date-published"],
       description: formData.description,
       keywords: formData.keywords,
       format: formData["data-format"],

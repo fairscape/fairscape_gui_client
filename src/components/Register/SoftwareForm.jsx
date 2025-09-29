@@ -152,13 +152,13 @@ function SoftwareForm({
         version: formData.version,
         description: formData.description,
         keywords: formData.keywords,
-        "file-format": formData["file-format"],
+        format: formData["file-format"],
         "@id": guid,
         url: formData.url,
-        "date-modified": formData["date-modified"],
-        "used-by-computation": formData["used-by-computation"],
-        "associated-publication": formData["associated-publication"],
-        "additional-documentation": formData["additional-documentation"],
+        dateModified: formData["date-modified"],
+        usedByComputation: formData["used-by-computation"],
+        associatedPublication: formData["associated-publication"],
+        additionalDocumentation: formData["additional-documentation"],
       };
 
       if (formData.md5) {
