@@ -18,57 +18,7 @@ import {
   JsonLdPreview,
   RadioGroupField,
 } from "./StyledComponents";
-
-const PackageTypeContainer = styled.div`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  margin-bottom: 30px;
-`;
-
-const PackageTypeQuestion = styled.h2`
-  font-size: 24px;
-  margin-bottom: 20px;
-  text-align: center;
-  color: ${(props) => props.theme.colors.text};
-`;
-
-const PackageTypeOptions = styled.div`
-  display: flex;
-  justify-content: center;
-  gap: 30px;
-  width: 100%;
-`;
-
-const PackageTypeOption = styled.div`
-  background-color: ${(props) =>
-    props.selected ? props.theme.colors.accent : props.theme.colors.input};
-  border-radius: 8px;
-  padding: 20px;
-  width: 300px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  color: ${(props) =>
-    props.selected ? "#fff" : props.theme.colors.textSecondary};
-
-  &:hover {
-    background-color: ${(props) =>
-      props.selected
-        ? props.theme.colors.accent
-        : props.theme.colors.inputHover};
-  }
-`;
-
-const OptionTitle = styled.h3`
-  font-size: 20px;
-  margin-bottom: 10px;
-  color: ${(props) => props.theme.colors.text};
-`;
-
-const OptionDescription = styled.p`
-  font-size: 16px;
-  color: ${(props) => props.theme.colors.textSecondary};
-`;
+import ManifestUpload from "./ManifestUpload";
 
 const ButtonContainer = styled.div`
   display: flex;
@@ -162,14 +112,13 @@ const projects = [
 ];
 
 function InitForm({ rocratePath, setRocratePath, onSuccess }) {
-  const [step, setStep] = useState(1);
   const [formData, setFormData] = useState({
     name: "",
     organization_name: "",
     project_name: "",
     description: "",
     keywords: "",
-    packageType: "",
+    packageType: "pipeline",
     author: "",
     license: LICENSE_OPTIONS[0].value,
     autoComplete: true,
@@ -178,6 +127,9 @@ function InitForm({ rocratePath, setRocratePath, onSuccess }) {
   const [jsonLdPreview, setJsonLdPreview] = useState({});
   const [showOverwriteConfirmation, setShowOverwriteConfirmation] =
     useState(false);
+
+  const [manifestFile, setManifestFile] = useState(null);
+  const [isDownloading, setIsDownloading] = useState(false);
 
   useEffect(() => {
     updateJsonLdPreview();
@@ -189,10 +141,6 @@ function InitForm({ rocratePath, setRocratePath, onSuccess }) {
 
   const handleCheckboxChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.checked });
-  };
-
-  const handlePackageTypeSelect = (type) => {
-    setFormData({ ...formData, packageType: type });
   };
 
   const generateGuid = (name) => {
@@ -339,177 +287,128 @@ function InitForm({ rocratePath, setRocratePath, onSuccess }) {
     }
   };
 
-  const handleNextStep = () => {
-    if (formData.packageType) {
-      setStep(2);
-    }
-  };
-
-  const handlePreviousStep = () => {
-    setStep(1);
-  };
-
   return (
     <>
       <InitStyledForm onSubmit={handleSubmit}>
         <FormTitle>Initialize an RO-Crate</FormTitle>
-        {step === 1 ? (
-          <PackageTypeContainer>
-            <PackageTypeQuestion>
-              What type of data are you packaging?
-            </PackageTypeQuestion>
-            <PackageTypeOptions>
-              <PackageTypeOption
-                selected={formData.packageType === "dataset"}
-                onClick={() => handlePackageTypeSelect("dataset")}
-              >
-                <OptionTitle>Datasets</OptionTitle>
-                <OptionDescription>
-                  Only Datasets does not include software/computations.
-                </OptionDescription>
-              </PackageTypeOption>
-              <PackageTypeOption
-                selected={formData.packageType === "pipeline"}
-                onClick={() => handlePackageTypeSelect("pipeline")}
-              >
-                <OptionTitle>Full Data Pipeline</OptionTitle>
-                <OptionDescription>
-                  Includes Datasets with software and computations required for
-                  provenance.
-                </OptionDescription>
-              </PackageTypeOption>
-            </PackageTypeOptions>
-            <StyledButton
-              type="button"
-              onClick={handleNextStep}
-              disabled={!formData.packageType}
-              style={{ marginTop: "20px" }}
+        <Row>
+          <Col md={6}>
+            <FormField
+              label="RO-Crate Path"
+              name="rocratePath"
+              value={rocratePath}
+              onChange={(e) => setRocratePath(e.target.value)}
+              required
+            />
+            <BrowseButton variant="secondary" onClick={handleBrowse}>
+              Browse
+            </BrowseButton>
+            <FormField
+              label="RO-Crate Name"
+              name="name"
+              value={formData.name}
+              onChange={handleChange}
+              required
+            />
+            <FormField
+              label="Organization Name"
+              name="organization_name"
+              value={formData.organization_name}
+              onChange={handleChange}
+              required
+              as="select"
             >
-              Next
-            </StyledButton>
-          </PackageTypeContainer>
-        ) : (
-          <Row>
-            <Col md={6}>
-              <FormField
-                label="RO-Crate Path"
-                name="rocratePath"
-                value={rocratePath}
-                onChange={(e) => setRocratePath(e.target.value)}
-                required
+              <option value="">Select an organization</option>
+              {organizations.map((org) => (
+                <option key={org.guid} value={org.name}>
+                  {org.name}
+                </option>
+              ))}
+            </FormField>
+            <FormField
+              label="Project Name"
+              name="project_name"
+              value={formData.project_name}
+              onChange={handleChange}
+              required
+              as="select"
+            >
+              <option value="">Select a project</option>
+              {projects.map((project) => (
+                <option key={project.guid} value={project.name}>
+                  {project.name}
+                </option>
+              ))}
+            </FormField>
+            <TextAreaField
+              label="Description"
+              name="description"
+              value={formData.description}
+              onChange={handleChange}
+              required
+            />
+            <FormField
+              label="Author"
+              name="author"
+              value={formData.author}
+              onChange={handleChange}
+              required
+              placeholder="1st Author First Last, 2nd Author First Last, ..."
+            />
+            <FormField
+              label="License"
+              name="license"
+              value={formData.license}
+              onChange={handleChange}
+              required
+              as="select"
+            >
+              {LICENSE_OPTIONS.map((license) => (
+                <option key={license.value} value={license.value}>
+                  {license.label}
+                </option>
+              ))}
+            </FormField>
+            <FormField
+              label="Keywords"
+              name="keywords"
+              value={formData.keywords}
+              onChange={handleChange}
+              placeholder="Enter keywords separated by commas"
+              required
+            />
+            <CheckboxContainer>
+              <CheckboxInput
+                type="checkbox"
+                id="autoComplete"
+                name="autoComplete"
+                checked={formData.autoComplete}
+                onChange={handleCheckboxChange}
               />
-              <BrowseButton variant="secondary" onClick={handleBrowse}>
-                Browse
-              </BrowseButton>
-
-              <FormField
-                label="RO-Crate Name"
-                name="name"
-                value={formData.name}
-                onChange={handleChange}
-                required
+              <CheckboxLabel htmlFor="autoComplete">
+                Autocomplete Dataset/Software Metadata
+              </CheckboxLabel>
+            </CheckboxContainer>
+            {rocratePath && (
+              <ManifestUpload
+                rocratePath={rocratePath}
+                onFileSelect={setManifestFile}
+                onDownloadStart={() => setIsDownloading(true)}
+                onDownloadComplete={() => setIsDownloading(false)}
               />
-
-              <FormField
-                label="Organization Name"
-                name="organization_name"
-                value={formData.organization_name}
-                onChange={handleChange}
-                required
-                as="select"
-              >
-                <option value="">Select an organization</option>
-                {organizations.map((org) => (
-                  <option key={org.guid} value={org.name}>
-                    {org.name}
-                  </option>
-                ))}
-              </FormField>
-
-              <FormField
-                label="Project Name"
-                name="project_name"
-                value={formData.project_name}
-                onChange={handleChange}
-                required
-                as="select"
-              >
-                <option value="">Select a project</option>
-                {projects.map((project) => (
-                  <option key={project.guid} value={project.name}>
-                    {project.name}
-                  </option>
-                ))}
-              </FormField>
-
-              <TextAreaField
-                label="Description"
-                name="description"
-                value={formData.description}
-                onChange={handleChange}
-                required
-              />
-
-              <FormField
-                label="Author"
-                name="author"
-                value={formData.author}
-                onChange={handleChange}
-                required
-                placeholder="1st Author First Last, 2nd Author First Last, ..."
-              />
-
-              <FormField
-                label="License"
-                name="license"
-                value={formData.license}
-                onChange={handleChange}
-                required
-                as="select"
-              >
-                {LICENSE_OPTIONS.map((license) => (
-                  <option key={license.value} value={license.value}>
-                    {license.label}
-                  </option>
-                ))}
-              </FormField>
-
-              <FormField
-                label="Keywords"
-                name="keywords"
-                value={formData.keywords}
-                onChange={handleChange}
-                placeholder="Enter keywords separated by commas"
-                required
-              />
-
-              <CheckboxContainer>
-                <CheckboxInput
-                  type="checkbox"
-                  id="autoComplete"
-                  name="autoComplete"
-                  checked={formData.autoComplete}
-                  onChange={handleCheckboxChange}
-                />
-                <CheckboxLabel htmlFor="autoComplete">
-                  Autocomplete Dataset/Software Metadata
-                </CheckboxLabel>
-              </CheckboxContainer>
-
-              <ButtonContainer>
-                <StyledButton type="submit">Initialize RO-Crate</StyledButton>
-                <StyledButton type="button" onClick={handlePreviousStep}>
-                  Back to Package Selection
-                </StyledButton>
-              </ButtonContainer>
-            </Col>
-            <Col md={6}>
-              <PreviewContainer>
-                <JsonLdPreview jsonLdData={jsonLdPreview} />
-              </PreviewContainer>
-            </Col>
-          </Row>
-        )}
+            )}
+            <ButtonContainer>
+              <StyledButton type="submit" disabled={isDownloading}>
+                {isDownloading ? "Downloading files..." : "Initialize RO-Crate"}
+              </StyledButton>
+            </ButtonContainer>
+          </Col>
+          <Col md={6}>
+            <PreviewContainer>
+              <JsonLdPreview jsonLdData={jsonLdPreview} />
+            </PreviewContainer>
+          </Col>
+        </Row>
       </InitStyledForm>
 
       <StyledModal
