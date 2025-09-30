@@ -1,0 +1,414 @@
+{
+  "sections": [
+    {
+      "id": "core",
+      "title": "Core Information",
+      "fields": [
+        {
+          "name": "name",
+          "label": "Release Name",
+          "type": "text",
+          "required": true,
+          "placeholder": "e.g., Cell Maps AI Release 1"
+        },
+        {
+          "name": "description",
+          "label": "Description",
+          "type": "textarea",
+          "required": true,
+          "placeholder": "Comprehensive description of the data release..."
+        },
+        {
+          "name": "version",
+          "label": "Version",
+          "type": "text",
+          "required": true,
+          "defaultValue": "1.0",
+          "placeholder": "1.0"
+        },
+        {
+          "name": "identifier",
+          "label": "DOI/Identifier",
+          "type": "text",
+          "required": false,
+          "placeholder": "e.g., https://doi.org/10.18130/V3/B35XWX"
+        },
+        {
+          "name": "datePublished",
+          "label": "Publication Date",
+          "type": "date",
+          "required": true,
+          "defaultValue": "today"
+        }
+      ]
+    },
+    {
+      "id": "organization",
+      "title": "Organization & Project",
+      "fields": [
+        {
+          "name": "organizationName",
+          "label": "Organization",
+          "type": "text",
+          "required": true,
+          "placeholder": "e.g., University of California San Diego"
+        },
+        {
+          "name": "projectName",
+          "label": "Project Name",
+          "type": "text",
+          "required": true,
+          "placeholder": "e.g., Cell Maps for Artificial Intelligence"
+        },
+        {
+          "name": "publisher",
+          "label": "Publisher",
+          "type": "text",
+          "required": true,
+          "placeholder": "e.g., https://dataverse.lib.virginia.edu/"
+        }
+      ]
+    },
+    {
+      "id": "people",
+      "title": "People & Contacts",
+      "fields": [
+        {
+          "name": "author",
+          "label": "Authors",
+          "type": "textarea",
+          "required": true,
+          "placeholder": "Comma-separated list of authors"
+        },
+        {
+          "name": "principalInvestigator",
+          "label": "Principal Investigator",
+          "type": "text",
+          "required": true,
+          "placeholder": "e.g., Dr. Jane Smith"
+        },
+        {
+          "name": "contactEmail",
+          "label": "Contact Email",
+          "type": "email",
+          "required": true,
+          "placeholder": "contact@example.org"
+        }
+      ]
+    },
+    {
+      "id": "classification",
+      "title": "Classification & Keywords",
+      "fields": [
+        {
+          "name": "keywords",
+          "label": "Keywords",
+          "type": "text",
+          "required": true,
+          "placeholder": "Comma-separated keywords (e.g., genomics, AI, cell maps)"
+        }
+      ]
+    },
+    {
+      "id": "legal",
+      "title": "Legal & Access",
+      "fields": [
+        {
+          "name": "license",
+          "label": "License URL",
+          "type": "url",
+          "required": true,
+          "defaultValue": "https://creativecommons.org/licenses/by/4.0/",
+          "placeholder": "https://creativecommons.org/licenses/by/4.0/"
+        },
+        {
+          "name": "conditionsOfAccess",
+          "label": "Conditions of Access",
+          "type": "textarea",
+          "required": true,
+          "placeholder": "Describe any access conditions or restrictions"
+        },
+        {
+          "name": "copyrightNotice",
+          "label": "Copyright Notice",
+          "type": "text",
+          "required": false,
+          "placeholder": "© 2025 Organization Name"
+        },
+        {
+          "name": "confidentialityLevel",
+          "label": "Confidentiality Level",
+          "type": "text",
+          "required": true,
+          "placeholder": "e.g., Unrestricted, Public"
+        }
+      ]
+    },
+    {
+      "id": "publications",
+      "title": "Publications & Citations",
+      "fields": [
+        {
+          "name": "associatedPublication",
+          "label": "Associated Publications",
+          "type": "textarea",
+          "required": true,
+          "placeholder": "List of associated publications (one per line)"
+        },
+        {
+          "name": "citation",
+          "label": "Preferred Citation",
+          "type": "textarea",
+          "required": false,
+          "placeholder": "How this dataset should be cited"
+        }
+      ]
+    },
+    {
+      "id": "funding",
+      "title": "Funding & Support",
+      "fields": [
+        {
+          "name": "funder",
+          "label": "Funder",
+          "type": "textarea",
+          "required": true,
+          "placeholder": "Funding agencies and grant numbers"
+        }
+      ]
+    },
+    {
+      "id": "technical",
+      "title": "Technical Details",
+      "fields": [
+        {
+          "name": "contentSize",
+          "label": "Content Size",
+          "type": "text",
+          "required": true,
+          "placeholder": "e.g., 19.1 TB"
+        },
+        {
+          "name": "usageInfo",
+          "label": "Usage Information",
+          "type": "textarea",
+          "required": false,
+          "placeholder": "Instructions or prerequisites for using this data"
+        }
+      ]
+    },
+    {
+      "id": "rai",
+      "title": "Responsible AI Metadata",
+      "fields": [
+        {
+          "name": "rai:dataLimitations",
+          "label": "Data Limitations",
+          "type": "textarea",
+          "required": true,
+          "placeholder": "Known limitations and non-recommended uses",
+          "description": "Known limitations - Data generalization limits (e.g related to data distribution, data quality issues, or data sources) and non-recommended uses."
+        },
+        {
+          "name": "rai:dataBiases",
+          "label": "Potential Biases",
+          "type": "textarea",
+          "required": true,
+          "placeholder": "Description of known biases in the dataset",
+          "description": "Description of biases in dataset, if applicable"
+        },
+        {
+          "name": "rai:dataUseCases",
+          "label": "Intended Use Cases",
+          "type": "textarea",
+          "required": true,
+          "placeholder": "Recommended dataset uses",
+          "description": "Dataset Use(s) - Training, Testing, Validation, Development or Production Use, Fine Tuning, Others (please specify), Usage Guidelines. Recommended uses."
+        },
+        {
+          "name": "rai:dataReleaseMaintenancePlan",
+          "label": "Maintenance Plan",
+          "type": "textarea",
+          "required": true,
+          "placeholder": "Versioning and update schedule",
+          "description": "Versioning information in terms of the updating timeframe, the maintainers, and the deprecation policies."
+        },
+        {
+          "name": "rai:dataCollection",
+          "label": "Data Collection Process",
+          "type": "textarea",
+          "required": true,
+          "placeholder": "Description of the data collection process",
+          "description": "Description of the data collection process"
+        },
+        {
+          "name": "rai:dataCollectionType",
+          "label": "Data Collection Type",
+          "type": "text",
+          "required": false,
+          "placeholder": "e.g., Web Scraping, Surveys",
+          "description": "Define the data collection type. Recommended values: Surveys, Secondary Data analysis, Physical data collection, Direct measurement, Document analysis, Manual Human Curator, Software Collection, Experiments, Web Scraping, Web API, Focus groups, Self-reporting, Customer feedback data, User-generated content data, Passive Data Collection, Others"
+        },
+        {
+          "name": "rai:dataCollectionMissingData",
+          "label": "Missing Data Description",
+          "type": "textarea",
+          "required": false,
+          "placeholder": "Description of missing data in the dataset",
+          "description": "Description of missing data in structured/unstructured form"
+        },
+        {
+          "name": "rai:dataCollectionRawData",
+          "label": "Raw Data Source",
+          "type": "textarea",
+          "required": false,
+          "placeholder": "Description of the raw data source",
+          "description": "Description of the raw data i.e. source of the data"
+        },
+        {
+          "name": "rai:dataCollectionTimeframe",
+          "label": "Data Collection Timeframe",
+          "type": "text",
+          "required": false,
+          "placeholder": "Start and end dates of data collection",
+          "description": "Timeframe in terms of start and end date of the collection process"
+        },
+        {
+          "name": "rai:dataImputationProtocol",
+          "label": "Imputation Protocol",
+          "type": "textarea",
+          "required": false,
+          "placeholder": "Description of the data imputation process",
+          "description": "Description of data imputation process if applicable"
+        },
+        {
+          "name": "rai:dataManipulationProtocol",
+          "label": "Manipulation Protocol",
+          "type": "textarea",
+          "required": false,
+          "placeholder": "Description of the data manipulation process",
+          "description": "Description of data manipulation process if applicable"
+        },
+        {
+          "name": "rai:dataPreprocessingProtocol",
+          "label": "Preprocessing Protocol",
+          "type": "textarea",
+          "required": false,
+          "placeholder": "Steps taken to preprocess the data for ML use",
+          "description": "Description of the steps that were required to bring collected data to a state that can be processed by an ML model/algorithm, e.g. filtering out incomplete entries etc."
+        },
+        {
+          "name": "rai:dataAnnotationProtocol",
+          "label": "Annotation Protocol",
+          "type": "textarea",
+          "required": false,
+          "placeholder": "Description of the annotation process (e.g., workforce, tasks)",
+          "description": "Description of annotations (labels, ratings) produced, including how these were created or authored - Annotation Workforce Type, Annotation Characteristic(s), Annotation Description(s), Annotation Task(s), Annotation Distribution(s)"
+        },
+        {
+          "name": "rai:dataAnnotationPlatform",
+          "label": "Annotation Platform",
+          "type": "text",
+          "required": false,
+          "placeholder": "Platform or tool used for human annotation",
+          "description": "Platform, tool, or library used to collect annotations by human annotators"
+        },
+        {
+          "name": "rai:dataAnnotationAnalysis",
+          "label": "Annotation Analysis",
+          "type": "textarea",
+          "required": false,
+          "placeholder": "Analysis of annotations (e.g., disagreement resolution)",
+          "description": "Considerations related to the process of converting the 'raw' annotations into the labels that are ultimately packaged in a dataset - Uncertainty or disagreement between annotations on each instance as a signal in the dataset, analysis of systematic disagreements between annotators of different socio demographic group, how the final dataset annotations will relate to individual annotator responses"
+        },
+        {
+          "name": "rai:personalSensitiveInformation",
+          "label": "Personal or Sensitive Information",
+          "type": "textarea",
+          "required": false,
+          "placeholder": "Description of any personal or sensitive information",
+          "description": "Sensitive Human Attribute(s)- Gender, Socio-economic status, Geography, Language, Age, Culture, Experience or Seniority, Others (please specify)"
+        },
+        {
+          "name": "rai:dataSocialImpact",
+          "label": "Social Impact",
+          "type": "textarea",
+          "required": false,
+          "placeholder": "Discussion of the dataset's potential social impact",
+          "description": "Discussion of social impact, if applicable"
+        },
+        {
+          "name": "rai:annotationsPerItem",
+          "label": "Annotations Per Item",
+          "type": "text",
+          "required": false,
+          "placeholder": "Number of human labels per dataset item",
+          "description": "Number of human labels per dataset item"
+        },
+        {
+          "name": "rai:annotatorDemographics",
+          "label": "Annotator Demographics",
+          "type": "text",
+          "required": false,
+          "placeholder": "Demographic specifications about the annotators",
+          "description": "List of demographics specifications about the annotators"
+        },
+        {
+          "name": "rai:machineAnnotationTools",
+          "label": "Machine Annotation Tools",
+          "type": "text",
+          "required": false,
+          "placeholder": "Software used for automated data annotation",
+          "description": "List of software used for data annotation (e.g. concept extraction, NER, and additional characteristics of the tools used for annotation to allow for replication or extension)"
+        }
+      ]
+    },
+    {
+      "id": "ethics",
+      "title": "Ethics & Compliance",
+      "fields": [
+        {
+          "name": "ethicalReview",
+          "label": "Ethical Review",
+          "type": "textarea",
+          "required": true,
+          "placeholder": "Details on ethical approvals and review"
+        },
+        {
+          "name": "humanSubject",
+          "label": "Human Subject Data",
+          "type": "text",
+          "required": true,
+          "placeholder": "e.g., No, Yes (IRB #12345)"
+        },
+        {
+          "name": "IRB",
+          "label": "IRB Number",
+          "type": "text",
+          "required": false,
+          "placeholder": "e.g., No, Yes (IRB #12345)"
+        }
+      ]
+    },
+    {
+      "id": "additional",
+      "title": "Additional Properties",
+      "fields": [
+        {
+          "name": "completeness",
+          "label": "Completeness Statement",
+          "type": "textarea",
+          "required": false,
+          "placeholder": "Statement about data completeness"
+        },
+        {
+          "name": "prohibitedUses",
+          "label": "Prohibited Uses",
+          "type": "textarea",
+          "required": false,
+          "placeholder": "Explicitly prohibited uses of this data"
+        }
+      ]
+    }
+  ]
+}

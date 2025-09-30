@@ -8,6 +8,7 @@ import PackageForm from "./components/PackageForm";
 import UploadForm from "./components/UploadForm";
 import SidebarComponent from "./components/SideBar";
 import Questionnaire from "./components/Questionnaire";
+import ReleaseForm from "./components/CreateRelease/ReleaseForm";
 import {
   AppContainer,
   MainContentWrapper,
@@ -125,6 +126,8 @@ function App() {
         );
       case "upload":
         return <UploadForm packagedPath={packagedPath} />;
+      case "release":
+        return <ReleaseForm />;
       default:
         return <div>Select a step from the sidebar</div>;
     }

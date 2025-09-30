@@ -100,6 +100,11 @@ const LogoutButton = styled.button`
   }
 `;
 
+const SectionSeparator = styled.div`
+  border-top: 1px solid ${(props) => props.theme.colors.border};
+  margin: 15px 0;
+`;
+
 function SidebarComponent({
   selectedView,
   handleViewSelect,
@@ -183,6 +188,15 @@ function SidebarComponent({
             {step.label}
           </SidebarItem>
         ))}
+
+        <SectionSeparator />
+
+        <SidebarItem
+          onClick={() => handleViewSelect("release")}
+          active={selectedView === "release"}
+        >
+          Create Release
+        </SidebarItem>
       </SidebarContent>
       <SidebarFooter>
         <ThemeSwitcher>
