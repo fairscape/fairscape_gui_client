@@ -217,6 +217,11 @@ function ReleaseForm() {
                 ],
                 name: rootNode.name || item.name,
                 description: rootNode.description || "",
+                keywords: rootNode.keywords || [],
+                isPartOf: rootNode.isPartOf || [],
+                version: rootNode.version || "",
+                hasPart: rootNode.hasPart || [],
+                author: rootNode.author || "",
                 path: `./${item.name}/ro-crate-metadata.json`,
               });
             }
@@ -314,10 +319,15 @@ function ReleaseForm() {
         },
         rootDataset,
         ...subCrates.map((sc) => ({
-          "@id": guid,
+          "@id": sc["@id"],
           "@type": sc["@type"],
           name: sc.name,
           description: sc.description,
+          keywords: sc.keywords,
+          isPartOf: sc.isPartOf,
+          version: sc.version,
+          hasPart: sc.hasPart,
+          author: sc.author,
           "ro-crate-metadata": sc.path,
         })),
       ],

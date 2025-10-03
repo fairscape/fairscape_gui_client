@@ -69,6 +69,12 @@ const SubCratePath = styled.div`
   margin-top: 5px;
 `;
 
+const SubCrateDetail = styled.div`
+  font-size: 12px;
+  color: ${(props) => props.theme.colors.textSecondary};
+  margin-top: 5px;
+`;
+
 const RemoveButton = styled.button`
   background: transparent;
   border: none;
@@ -121,6 +127,11 @@ function ReleaseSubCrateScanner({
     "@id": "",
     name: "",
     description: "",
+    keywords: [],
+    isPartOf: [],
+    version: "",
+    hasPart: [],
+    author: "",
     path: "",
   });
 
@@ -139,6 +150,9 @@ function ReleaseSubCrateScanner({
       {
         ...newSubCrate,
         "@type": ["Dataset", "https://w3id.org/EVI#ROCrate"],
+        keywords: newSubCrate.keywords.length > 0 ? newSubCrate.keywords : [],
+        isPartOf: newSubCrate.isPartOf.length > 0 ? newSubCrate.isPartOf : [],
+        hasPart: newSubCrate.hasPart.length > 0 ? newSubCrate.hasPart : [],
       },
     ];
 
@@ -147,6 +161,11 @@ function ReleaseSubCrateScanner({
       "@id": "",
       name: "",
       description: "",
+      keywords: [],
+      isPartOf: [],
+      version: "",
+      hasPart: [],
+      author: "",
       path: "",
     });
     setShowAddForm(false);
@@ -175,9 +194,23 @@ function ReleaseSubCrateScanner({
                   </SubCratePath>
                 )}
                 {subCrate.description && (
-                  <div style={{ marginTop: "8px", fontSize: "14px" }}>
-                    {subCrate.description}
-                  </div>
+                  <SubCrateDetail>{subCrate.description}</SubCrateDetail>
+                )}
+                {subCrate.version && (
+                  <SubCrateDetail>Version: {subCrate.version}</SubCrateDetail>
+                )}
+                {subCrate.keywords && subCrate.keywords.length > 0 && (
+                  <SubCrateDetail>
+                    Keywords: {subCrate.keywords.join(", ")}
+                  </SubCrateDetail>
+                )}
+                {subCrate.author && (
+                  <SubCrateDetail>
+                    Author:{" "}
+                    {Array.isArray(subCrate.author)
+                      ? subCrate.author.join(", ")
+                      : subCrate.author}
+                  </SubCrateDetail>
                 )}
               </SubCrateInfo>
               <RemoveButton
@@ -222,6 +255,30 @@ function ReleaseSubCrateScanner({
               />
             </StyledFormGroup>
           </FormRow>
+          <FormRow>
+            <StyledFormGroup>
+              <StyledLabel>Version</StyledLabel>
+              <StyledInput
+                type="text"
+                value={newSubCrate.version}
+                onChange={(e) =>
+                  setNewSubCrate({ ...newSubCrate, version: e.target.value })
+                }
+                placeholder="1.0.0"
+              />
+            </StyledFormGroup>
+            <StyledFormGroup>
+              <StyledLabel>Author</StyledLabel>
+              <StyledInput
+                type="text"
+                value={newSubCrate.author}
+                onChange={(e) =>
+                  setNewSubCrate({ ...newSubCrate, author: e.target.value })
+                }
+                placeholder="Author name"
+              />
+            </StyledFormGroup>
+          </FormRow>
           <StyledFormGroup>
             <StyledLabel>Description</StyledLabel>
             <StyledTextArea
@@ -231,6 +288,27 @@ function ReleaseSubCrateScanner({
               }
               placeholder="Description of the sub-crate"
               rows={3}
+            />
+          </StyledFormGroup>
+          <StyledFormGroup>
+            <StyledLabel>Keywords (comma-separated)</StyledLabel>
+            <StyledInput
+              type="text"
+              value={
+                Array.isArray(newSubCrate.keywords)
+                  ? newSubCrate.keywords.join(", ")
+                  : ""
+              }
+              onChange={(e) =>
+                setNewSubCrate({
+                  ...newSubCrate,
+                  keywords: e.target.value
+                    .split(",")
+                    .map((k) => k.trim())
+                    .filter((k) => k),
+                })
+              }
+              placeholder="keyword1, keyword2, keyword3"
             />
           </StyledFormGroup>
           <StyledFormGroup>
