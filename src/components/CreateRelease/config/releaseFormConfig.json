@@ -375,13 +375,6 @@
           "placeholder": "Details on ethical approvals and review"
         },
         {
-          "name": "humanSubject",
-          "label": "Human Subject Data",
-          "type": "text",
-          "required": true,
-          "placeholder": "e.g., No, Yes (IRB #12345)"
-        },
-        {
           "name": "IRB",
           "label": "IRB Number",
           "type": "text",
@@ -395,18 +388,32 @@
       "title": "Additional Properties",
       "fields": [
         {
-          "name": "completeness",
+          "name": "Completeness",
           "label": "Completeness Statement",
           "type": "textarea",
           "required": false,
           "placeholder": "Statement about data completeness"
         },
         {
-          "name": "prohibitedUses",
+          "name": "Prohibited Uses",
           "label": "Prohibited Uses",
           "type": "textarea",
           "required": false,
           "placeholder": "Explicitly prohibited uses of this data"
+        },
+        {
+          "name": "Human Subject",
+          "label": "Human Subject",
+          "type": "text",
+          "required": true,
+          "placeholder": "e.g., No, Yes (IRB #12345)"
+        },
+        {
+          "name": "Data Governance Committee",
+          "label": "Data Governance Committee",
+          "type": "text",
+          "required": true,
+          "placeholder": "Org or Person or Email"
         }
       ]
     }

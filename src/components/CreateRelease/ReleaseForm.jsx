@@ -5,8 +5,8 @@ import path from "path";
 import styled from "styled-components";
 import ReleaseInstructions from "./ReleaseInstructions";
 import ReleaseSubCrateScanner from "./ReleaseSubCrateScanner";
-import ReleaseJsonPreview from "./ReleaseJsonPreview";
 import ReleaseSectionForm from "./ReleaseSectionForm";
+import ActionSidebar from "./ActionSidebar";
 import releaseFormConfig from "./config/releaseFormConfig.json";
 import {
   StyledButton,
@@ -238,6 +238,13 @@ function ReleaseForm() {
         }
       });
     });
+    if (metadata.additionalProperty) {
+      metadata.additionalProperty.forEach((prop) => {
+        if (prop.name) {
+          extracted[prop.name] = prop.value;
+        }
+      });
+    }
     return extracted;
   };
 
@@ -258,6 +265,41 @@ function ReleaseForm() {
   const generateReleaseJson = () => {
     const guid = formData["@id"] || `ark:59852/release-${Date.now()}`;
 
+    const additionalProperties = [];
+    const additionalPropertyFields = [
+      "Completeness",
+      "Prohibited Uses",
+      "Human Subject",
+      "Data Governance Committee",
+    ];
+
+    additionalPropertyFields.forEach((fieldName) => {
+      if (formData[fieldName]) {
+        additionalProperties.push({
+          "@type": "PropertyValue",
+          name: fieldName,
+          value: formData[fieldName],
+        });
+      }
+    });
+
+    const rootDataset = {
+      "@id": "./",
+      "@type": ["Dataset", "https://w3id.org/EVI#ROCrate"],
+    };
+
+    Object.keys(formData).forEach((key) => {
+      if (!additionalPropertyFields.includes(key)) {
+        rootDataset[key] = formData[key];
+      }
+    });
+
+    rootDataset["@id"] = guid;
+
+    if (additionalProperties.length > 0) {
+      rootDataset.additionalProperty = additionalProperties;
+    }
+
     const jsonOutput = {
       "@context": {
         "@vocab": "https://schema.org/",
@@ -269,13 +311,7 @@ function ReleaseForm() {
           "@type": "CreativeWork",
           about: { "@id": "./" },
         },
-        {
-          "@id": "./",
-          "@type": ["Dataset", "https://w3id.org/EVI#ROCrate"],
-          ...formData,
-          "@id": guid,
-          hasPart: formData.hasPart || [],
-        },
+        rootDataset,
         ...subCrates.map((sc) => ({
           "@id": sc["@id"],
           "@type": sc["@type"],
@@ -300,6 +336,13 @@ function ReleaseForm() {
       console.error("Error saving release metadata:", error);
       alert("Failed to save release metadata");
     }
+  };
+
+  const handleStartOver = () => {
+    setMode("selection");
+    setSelectedDirectory("");
+    setSubCrates([]);
+    initializeForm();
   };
 
   if (mode === "selection") {
@@ -348,23 +391,13 @@ function ReleaseForm() {
             onSubCratesChange={handleSubCratesChange}
             selectedDirectory={selectedDirectory}
           />
-          <ButtonGroup>
-            <StyledButton onClick={handleSave}>
-              Save Release Metadata
-            </StyledButton>
-            <StyledButton
-              variant="secondary"
-              onClick={() => {
-                setMode("selection");
-                setSelectedDirectory("");
-                setSubCrates([]);
-                initializeForm();
-              }}
-            >
-              Start Over
-            </StyledButton>
-          </ButtonGroup>
         </FormColumn>
+        <ActionSidebar
+          onDownload={handleSave}
+          onStartOver={handleStartOver}
+          isAllSectionsReviewed={true}
+          isReviewRequired={false}
+        />
       </MainContainer>
     );
   }
