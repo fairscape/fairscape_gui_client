@@ -263,7 +263,8 @@ function ReleaseForm() {
   };
 
   const generateReleaseJson = () => {
-    const guid = formData["@id"] || `ark:59852/release-${Date.now()}`;
+    const guid =
+      formData["@id"] || `ark:59853/release-${formData.name}-${Date.now()}`;
 
     const additionalProperties = [];
     const additionalPropertyFields = [
@@ -309,11 +310,11 @@ function ReleaseForm() {
         {
           "@id": "ro-crate-metadata.json",
           "@type": "CreativeWork",
-          about: { "@id": "./" },
+          about: { "@id": guid },
         },
         rootDataset,
         ...subCrates.map((sc) => ({
-          "@id": sc["@id"],
+          "@id": guid,
           "@type": sc["@type"],
           name: sc.name,
           description: sc.description,
