@@ -2,12 +2,15 @@ import { ipcMain, dialog, shell, BrowserWindow } from 'electron';
 import fs from 'node:fs';
 import path from 'node:path';
 import { CH } from '../shared/types';
-import type { FairscapeState, PermissionDecision, WizardStart } from '../shared/types';
-import { WizardSession, type PostFn } from './bridge';
+import type { FairscapeState, PermissionDecision, StudioConfig, WizardStart } from '../shared/types';
+import { createEngine, type AgentEngine, type PostFn } from './engine';
 import { StateWatcher } from './state-watcher';
 import { GradingWatcher } from './grading-watcher';
+import { getConfig, saveConfig, saveOpencodeKey } from './settings';
+import { hasClaudeLogin } from './auth';
+import { listOpencodeModels } from './opencode-models';
 
-let session: WizardSession | null = null;
+let session: AgentEngine | null = null;
 let watcher: StateWatcher | null = null;
 let gradingWatcher: GradingWatcher | null = null;
 
@@ -45,7 +48,7 @@ export function registerIpc(): void {
         kind === 'agent' ? CH.agentEvent : kind === 'question' ? CH.question : CH.permission;
       send(channel, payload);
     };
-    session = new WizardSession(config, post, () => gradingWatcher?.poke());
+    session = createEngine(config, post, () => gradingWatcher?.poke());
     await session.start();
   });
 
@@ -81,6 +84,20 @@ export function registerIpc(): void {
     const p = path.join(dir, 'ro-crate-datasheet.html');
     if (fs.existsSync(p)) await shell.openPath(p);
   });
+
+  ipcMain.handle(CH.getConfig, async () => getConfig());
+
+  ipcMain.handle(CH.saveConfig, async (_e, config: StudioConfig) => saveConfig(config));
+
+  ipcMain.handle(CH.saveOpencodeKey, async (_e, p: { providerID: string; key: string }) =>
+    saveOpencodeKey(p.providerID, p.key),
+  );
+
+  ipcMain.handle(CH.checkClaudeLogin, async () => hasClaudeLogin());
+
+  ipcMain.handle(CH.listOpencodeModels, async (_e, opts?: { port?: number }) =>
+    listOpencodeModels(opts?.port),
+  );
 }
 
 export function disposeIpc(): void {

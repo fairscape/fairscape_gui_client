@@ -9,6 +9,7 @@ import {
   Globe,
   Shield,
   ShieldCheck,
+  Settings as SettingsIcon,
 } from 'lucide-react';
 import { useWizard } from '@/hooks/useWizard';
 import { PhaseStepper } from '@/components/PhaseStepper';
@@ -18,15 +19,16 @@ import { QuestionCard } from '@/components/QuestionCard';
 import { PermissionDialog } from '@/components/PermissionDialog';
 import { GradingView } from '@/components/GradingView';
 import { GradingChecklist } from '@/components/GradingChecklist';
+import { SettingsPage } from '@/components/SettingsPage';
 import { Markdown } from '@/components/Markdown';
 import { cn } from '@/lib/utils';
-import { MODELS, DEFAULT_MODEL } from '@/shared/types';
-import type { WizardStart } from '@/shared/types';
+import { MODELS, ENGINES, studioRunModel } from '@/shared/types';
+import type { EngineId, StudioConfig, WizardStart } from '@/shared/types';
 import { PHASES } from '@/shared/phases';
 
 export function App() {
   const w = useWizard();
-  const [view, setView] = useState<'wizard' | 'score'>('wizard');
+  const [view, setView] = useState<'wizard' | 'score' | 'settings'>('wizard');
   const revealed = useRef(false);
 
   useEffect(() => {
@@ -36,7 +38,30 @@ export function App() {
     }
   }, [w.score]);
 
-  if (!w.started) return <Landing pickFolder={w.pickFolder} onStart={w.start} />;
+  if (view === 'settings') {
+    return w.studioConfig ? (
+      <SettingsPage
+        config={w.studioConfig}
+        onClose={() => setView('wizard')}
+        onSaved={() => {
+          void w.reloadConfig();
+          setView('wizard');
+        }}
+      />
+    ) : (
+      <div className="grid h-full place-items-center text-sm text-muted-foreground">Loading…</div>
+    );
+  }
+
+  if (!w.started)
+    return (
+      <Landing
+        pickFolder={w.pickFolder}
+        onStart={w.start}
+        config={w.studioConfig}
+        onOpenSettings={() => setView('settings')}
+      />
+    );
 
   if (view === 'score' && w.score) {
     return (
@@ -53,7 +78,9 @@ export function App() {
       <Header
         folder={w.folder}
         model={w.model}
+        engine={w.engine}
         onModelChange={w.setModel}
+        onOpenSettings={() => setView('settings')}
         autoApprove={w.autoApprove}
         onToggleAutoApprove={() => w.setAutoApprove(!w.autoApprove)}
         summary={w.state?.grading?.summary}
@@ -138,7 +165,33 @@ function AwaitingReply({ prompt }: { prompt: string | null }) {
   );
 }
 
-function ModelSelect({ value, onChange }: { value: string; onChange: (m: string) => void }) {
+/**
+ * Engine-aware model control. Claude exposes its model aliases as a quick dropdown (switching
+ * restarts the session). OpenCode's model is chosen in Settings, so here it's a static label
+ * that opens Settings on click.
+ */
+function ModelSelect({
+  value,
+  engine,
+  onChange,
+  onOpenSettings,
+}: {
+  value: string;
+  engine: EngineId;
+  onChange: (m: string) => void;
+  onOpenSettings: () => void;
+}) {
+  if (engine === 'opencode') {
+    return (
+      <button
+        onClick={onOpenSettings}
+        title="OpenCode model — change in Settings"
+        className="rounded-lg border border-border bg-card px-2 py-1 text-xs text-foreground hover:bg-accent"
+      >
+        {value || 'select model'}
+      </button>
+    );
+  }
   return (
     <select
       value={value}
@@ -158,7 +211,9 @@ function ModelSelect({ value, onChange }: { value: string; onChange: (m: string)
 function Header({
   folder,
   model,
+  engine,
   onModelChange,
+  onOpenSettings,
   autoApprove,
   onToggleAutoApprove,
   summary,
@@ -167,7 +222,9 @@ function Header({
 }: {
   folder: string | null;
   model: string;
+  engine: EngineId;
   onModelChange: (m: string) => void;
+  onOpenSettings: () => void;
   autoApprove: boolean;
   onToggleAutoApprove: () => void;
   summary?: { total: number; max: number; percentage: number };
@@ -226,7 +283,14 @@ function Header({
             <FileText className="size-3.5" /> Datasheet
           </button>
         )}
-        <ModelSelect value={model} onChange={onModelChange} />
+        <ModelSelect value={model} engine={engine} onChange={onModelChange} onOpenSettings={onOpenSettings} />
+        <button
+          onClick={onOpenSettings}
+          title="Settings"
+          className="inline-flex items-center justify-center rounded-lg border border-border p-1.5 text-muted-foreground hover:bg-accent"
+        >
+          <SettingsIcon className="size-3.5" />
+        </button>
       </div>
     </header>
   );
@@ -235,16 +299,25 @@ function Header({
 function Landing({
   pickFolder,
   onStart,
+  config,
+  onOpenSettings,
 }: {
   pickFolder: () => Promise<string | null>;
   onStart: (config: WizardStart) => void;
+  config: StudioConfig | null;
+  onOpenSettings: () => void;
 }) {
   const [mode, setMode] = useState<'local' | 'remote'>('local');
   const [dir, setDir] = useState<string | null>(null);
   const [sourceRef, setSourceRef] = useState('');
-  const [model, setModel] = useState<string>(DEFAULT_MODEL);
 
-  const ready = mode === 'local' ? !!dir : !!dir && sourceRef.trim().length > 0;
+  const engine = config?.engine ?? 'claude';
+  const engineLabel = ENGINES.find((e) => e.id === engine)?.label ?? engine;
+  const runModel = config ? studioRunModel(config) : '';
+  const needsModel = engine === 'opencode' && !config?.opencode.modelID;
+
+  const sourceReady = mode === 'local' ? !!dir : !!dir && sourceRef.trim().length > 0;
+  const ready = sourceReady && !!config && !needsModel;
 
   async function choose() {
     const d = await pickFolder();
@@ -252,12 +325,13 @@ function Landing({
   }
 
   function go() {
-    if (!ready || !dir) return;
+    if (!ready || !dir || !config) return;
     onStart({
       mode,
       dir,
       sourceRef: mode === 'remote' ? sourceRef.trim() : undefined,
-      model,
+      engine: config.engine,
+      model: runModel,
     });
   }
 
@@ -343,12 +417,21 @@ function Landing({
           </div>
         </div>
 
-        {/* Model + start */}
+        {/* Engine/model summary + start */}
         <div className="mt-7 flex flex-wrap items-center justify-between gap-3 border-t border-border pt-5">
-          <label className="flex items-center gap-2 text-sm text-muted-foreground">
-            Run with
-            <ModelSelect value={model} onChange={setModel} />
-          </label>
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <span>Run with</span>
+            <button
+              onClick={onOpenSettings}
+              title="Change engine & model in Settings"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-2.5 py-1 text-xs text-foreground hover:bg-accent"
+            >
+              <SettingsIcon className="size-3.5" />
+              {engineLabel}
+              {runModel && <span className="text-muted-foreground">· {runModel}</span>}
+            </button>
+            {needsModel && <span className="text-xs text-warning">choose a model in Settings</span>}
+          </div>
           <button
             onClick={go}
             disabled={!ready}

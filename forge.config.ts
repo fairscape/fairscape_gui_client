@@ -10,10 +10,11 @@ import { FuseV1Options, FuseVersion } from '@electron/fuses';
 const config: ForgeConfig = {
   packagerConfig: {
     name: 'Fairscape Packager',
-    // The Agent SDK ships a native engine binary + spawns a subprocess, so it
-    // can't run from inside the asar archive — unpack its whole package tree.
+    // The Agent SDK ships a native engine binary + spawns a subprocess, so it can't run
+    // from inside the asar archive. The OpenCode SDK is ESM and spawns `opencode serve`.
+    // Unpack both package trees so they load/execute correctly outside the archive.
     asar: {
-      unpack: '**/node_modules/@anthropic-ai/**',
+      unpack: '**/node_modules/{@anthropic-ai,@opencode-ai}/**',
     },
   },
   rebuildConfig: {},

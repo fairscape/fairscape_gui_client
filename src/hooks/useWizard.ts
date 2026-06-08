@@ -1,13 +1,15 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { DEFAULT_MODEL } from '@/shared/types';
+import { DEFAULT_ENGINE, DEFAULT_MODEL } from '@/shared/types';
 import type {
   AgentEvent,
   AggregatedScore,
+  EngineId,
   FairscapeState,
   GradingProgress,
   PermissionDecision,
   PermissionRequest,
   Phase,
+  StudioConfig,
   WizardQuestion,
   WizardStart,
 } from '@/shared/types';
@@ -35,9 +37,12 @@ export interface WizardModel {
   gradingProgress: GradingProgress | null;
   error: string | null;
   model: string;
+  engine: EngineId;
+  studioConfig: StudioConfig | null;
   autoApprove: boolean;
   // actions
   pickFolder: () => Promise<string | null>;
+  reloadConfig: () => Promise<StudioConfig>;
   start: (config: WizardStart) => Promise<void>;
   setModel: (model: string) => void;
   setAutoApprove: (on: boolean) => void;
@@ -62,6 +67,8 @@ export function useWizard(): WizardModel {
   const [score, setScore] = useState<AggregatedScore | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [model, setModelState] = useState<string>(DEFAULT_MODEL);
+  const [engine, setEngineState] = useState<EngineId>(DEFAULT_ENGINE);
+  const [studioConfig, setStudioConfig] = useState<StudioConfig | null>(null);
   const [autoApprove, setAutoApproveState] = useState(false);
   const [gradingProgress, setGradingProgress] = useState<GradingProgress | null>(null);
   const idRef = useRef(0);
@@ -129,6 +136,16 @@ export function useWizard(): WizardModel {
     };
   }, []);
 
+  const reloadConfig = useCallback(async () => {
+    const cfg = await window.fairscape.getConfig();
+    setStudioConfig(cfg);
+    return cfg;
+  }, []);
+
+  useEffect(() => {
+    void reloadConfig();
+  }, [reloadConfig]);
+
   const setAutoApprove = useCallback((on: boolean) => {
     setAutoApproveState(on);
     void window.fairscape.setAutoApprove(on);
@@ -141,6 +158,7 @@ export function useWizard(): WizardModel {
     setFolder(config.dir);
     folderRef.current = config.dir;
     setModelState(config.model);
+    setEngineState(config.engine);
     setStarted(true);
     setBusy(true);
     setError(null);
@@ -214,8 +232,11 @@ export function useWizard(): WizardModel {
     gradingProgress,
     error,
     model,
+    engine,
+    studioConfig,
     autoApprove,
     pickFolder,
+    reloadConfig,
     start,
     setModel,
     setAutoApprove,
