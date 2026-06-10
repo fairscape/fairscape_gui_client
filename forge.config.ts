@@ -13,9 +13,17 @@ const config: ForgeConfig = {
     // The Agent SDK ships a native engine binary + spawns a subprocess, so it can't run
     // from inside the asar archive. The OpenCode SDK is ESM and spawns `opencode serve`.
     // Unpack both package trees so they load/execute correctly outside the archive.
+    // (NOTE: the Forge+Vite plugin currently prunes node_modules from the package entirely,
+    // so shipping the externalized SDK *JS* is still open work — see README "Remaining".)
     asar: {
       unpack: '**/node_modules/{@anthropic-ai,@opencode-ai}/**',
     },
+    // Bundle the OpenCode CLI so end users install nothing. The `opencode-ai` postinstall
+    // vendors this platform's native binary into opencode-ai/bin/opencode.exe (that name is
+    // used on every OS); we ship that single self-contained file straight into the app's
+    // resources/ dir, which sidesteps node_modules pruning. opencode-binary.ts resolves it at
+    // `process.resourcesPath/opencode.exe` and puts it on PATH for the SDK.
+    extraResource: ['./node_modules/opencode-ai/bin/opencode.exe'],
   },
   rebuildConfig: {},
   makers: [

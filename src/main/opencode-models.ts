@@ -1,6 +1,7 @@
 import type { Config } from '@opencode-ai/sdk';
 import { DEFAULT_OPENCODE_PORT } from '../shared/types';
 import type { OpencodeProviders } from '../shared/types';
+import { ensureOpencodeOnPath } from './opencode-binary';
 import { loadOpencodeKeys } from './settings';
 
 // ESM-only SDK loaded lazily so the CJS-built main process can use it.
@@ -14,6 +15,7 @@ const loadOc = (): Promise<OcModule> => (ocPromise ??= import('@opencode-ai/sdk'
  * so the model dropdown reflects exactly what this machine's OpenCode can reach.
  */
 export async function listOpencodeModels(port = DEFAULT_OPENCODE_PORT): Promise<OpencodeProviders> {
+  ensureOpencodeOnPath();
   const { createOpencode } = await loadOc();
   const { client, server } = await createOpencode({
     hostname: '127.0.0.1',

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ArrowLeft, FileText, ChevronDown, ChevronRight } from 'lucide-react';
+import { ArrowLeft, FileText, Boxes, ChevronDown, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { AggregatedScore, CriterionScore, RubricScore } from '@/shared/types';
 
@@ -21,10 +21,12 @@ function titleCase(slug?: string) {
 export function GradingView({
   score,
   onBack,
+  onOpenWorkspace,
   onOpenDatasheet,
 }: {
   score: AggregatedScore;
   onBack: () => void;
+  onOpenWorkspace?: () => void;
   onOpenDatasheet: () => void;
 }) {
   return (
@@ -38,12 +40,22 @@ export function GradingView({
           >
             <ArrowLeft className="size-4" /> Back to wizard
           </button>
-          <button
-            onClick={onOpenDatasheet}
-            className="inline-flex items-center gap-1.5 rounded-lg bg-white/10 px-3 py-1.5 text-sm font-medium hover:bg-white/20"
-          >
-            <FileText className="size-4" /> Open datasheet
-          </button>
+          <div className="flex items-center gap-2">
+            {onOpenWorkspace && (
+              <button
+                onClick={onOpenWorkspace}
+                className="inline-flex items-center gap-1.5 rounded-lg bg-white/10 px-3 py-1.5 text-sm font-medium hover:bg-white/20"
+              >
+                <Boxes className="size-4" /> Open workspace
+              </button>
+            )}
+            <button
+              onClick={onOpenDatasheet}
+              className="inline-flex items-center gap-1.5 rounded-lg bg-white/10 px-3 py-1.5 text-sm font-medium hover:bg-white/20"
+            >
+              <FileText className="size-4" /> Open datasheet
+            </button>
+          </div>
         </div>
         <div className="mx-auto mt-5 max-w-4xl">
           <h1 className="text-lg font-semibold">AI-Ready Rubric Score</h1>

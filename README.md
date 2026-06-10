@@ -43,7 +43,12 @@ npm start
 ```
 
 Prerequisites:
-- **Claude Code installed and logged in** (`claude` on PATH, a Pro/Max/Team/Enterprise login).
+- **Claude Code installed and logged in** (`claude` on PATH, a Pro/Max/Team/Enterprise login) —
+  for the default **Claude** engine.
+- The **OpenCode** engine needs **no separate install**: the `opencode` binary is bundled via the
+  `opencode-ai` dependency (its postinstall vendors this platform's native executable into
+  `node_modules/opencode-ai/bin/opencode.exe`). At runtime `src/main/opencode-binary.ts` puts it on
+  PATH for the SDK; users only supply a provider key (Settings) or `opencode auth login`.
 - **The wizard's Python deps** so `preflight-check` passes — from this monorepo:
   `pip install -e ../fairscape_grader` (provides `fairscape_wizard`; `fairscape-cli` and
   `fairscape_models` are also required). If missing, the wizard detects it and offers `env-setup`.
@@ -57,4 +62,8 @@ interactive shell (stepper + live feed + AskUserQuestion option cards + permissi
 
 Remaining: full `<GradingView>` (port of `ai-ready-score-view.html`); polish (resume, login-missing
 / credit-exhausted states, branding); distribution packaging — Forge+Vite prunes `node_modules`, so
-the external Agent SDK must be copied into the packaged app (dev `npm start` is unaffected).
+the external Agent SDK must be copied into the packaged app (dev `npm start` is unaffected). The
+bundled `opencode` binary rides the same path: `forge.config.ts` unpacks `opencode-ai`/`opencode-*`
+out of the asar archive so it stays executable. (Optional size trim: the `opencode-<platform>`
+source package duplicates the vendored binary — it can be excluded from the package since runtime
+only uses `opencode-ai/bin`.)

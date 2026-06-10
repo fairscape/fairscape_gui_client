@@ -29,6 +29,7 @@
     "@electron-forge/plugin-vite": "^7.11.2",
     "@electron/fuses": "^1.8.0",
     "@tailwindcss/vite": "^4.3.0",
+    "@types/dagre": "^0.7.54",
     "@types/electron-squirrel-startup": "^1.0.2",
     "@types/node": "^25.9.1",
     "@types/react": "^19.2.15",
@@ -47,14 +48,21 @@
   "dependencies": {
     "@anthropic-ai/claude-agent-sdk": "^0.3.159",
     "@opencode-ai/sdk": "^1.16.2",
+    "@tippyjs/react": "^4.2.6",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "d3": "^7.9.0",
+    "dagre": "^0.8.5",
     "electron-squirrel-startup": "^1.0.1",
     "lucide-react": "^1.17.0",
+    "opencode-ai": "^1.16.2",
     "react": "^19.2.6",
     "react-dom": "^19.2.6",
     "react-markdown": "^10.1.0",
+    "reactflow": "^11.11.4",
     "remark-gfm": "^4.0.1",
-    "tailwind-merge": "^3.6.0"
+    "styled-components": "^6.4.2",
+    "tailwind-merge": "^3.6.0",
+    "tippy.js": "^6.3.7"
   }
 }

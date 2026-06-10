@@ -182,6 +182,94 @@ export interface AggregatedScore {
   criteria: CriterionScore[];
 }
 
+// ---------------------------------------------------------------------------
+// Crate Workspace — post-wizard explore / evidence-graph / edit-add contract.
+// ---------------------------------------------------------------------------
+
+/** One node from the crate's @graph (an RO-Crate JSON-LD entity). */
+export interface CrateEntity {
+  '@id': string;
+  '@type'?: string | string[];
+  name?: string;
+  description?: string;
+  version?: string;
+  author?: string | { '@id': string } | Array<string | { '@id': string }>;
+  keywords?: string[] | string;
+  /** Relationship refs — each is `{'@id'}`, an array of those, or a bare string. */
+  usedDataset?: unknown;
+  usedSoftware?: unknown;
+  usedByComputation?: unknown;
+  generatedBy?: unknown;
+  generated?: unknown;
+  derivedFrom?: unknown;
+  [k: string]: unknown;
+}
+
+/** Parsed ro-crate-metadata.json: the JSON-LD context + flat @graph array. */
+export interface Crate {
+  '@context'?: unknown;
+  '@graph': CrateEntity[];
+  /** @id of the root ROCrate/Dataset (from the metadata descriptor's `about.@id`). */
+  rootId?: string;
+}
+
+/**
+ * Evidence-graph JSON from `fairscape-cli build evidence-graph`. NOTE its `@graph`
+ * is a DICT keyed by @id (unlike a crate's array). Passed verbatim to the viewer.
+ */
+export interface RawGraphData {
+  '@id'?: string;
+  '@type'?: string | string[];
+  name?: string;
+  description?: string;
+  '@graph': { [arkId: string]: CrateEntity };
+  outputs?: Array<{ '@id': string }>;
+  [k: string]: unknown;
+}
+
+/** Field edits applied to one existing entity (main-process JSON read-modify-write). */
+export interface EntityPatch {
+  name?: string;
+  description?: string;
+  version?: string;
+  author?: string;
+  keywords?: string[];
+  /** Relationship link arrays of @id strings, written back as `[{'@id'}]`. */
+  links?: Partial<
+    Record<'usedDataset' | 'usedSoftware' | 'generatedBy' | 'derivedFrom' | 'generated', string[]>
+  >;
+}
+
+/** A new entity to register via `fairscape-cli rocrate register <kind>`. */
+export interface NewEntity {
+  kind: 'dataset' | 'software' | 'computation';
+  name: string;
+  description: string;
+  keywords: string;
+  author?: string; // dataset/software (required by CLI)
+  version?: string; // dataset/software (required by CLI)
+  dataFormat?: string; // dataset (required by CLI)
+  datePublished?: string; // dataset (required by CLI; default today)
+  fileFormat?: string; // software (required by CLI)
+  /** dataset/software: a relative file path within the crate. */
+  filepath?: string;
+  /** dataset/software: a URL if the content is hosted externally. */
+  contentUrl?: string;
+  runBy?: string; // computation (required by CLI)
+  dateCreated?: string; // computation (required by CLI; default today)
+  command?: string; // computation
+  usedDataset?: string[]; // computation links
+  usedSoftware?: string[];
+  generated?: string[];
+}
+
+/** Result of a fairscape-cli subprocess invocation. */
+export interface CliResult {
+  ok: boolean;
+  stdout: string;
+  stderr: string;
+}
+
 /** The API exposed to the renderer via contextBridge as `window.fairscape`. */
 export interface FairscapeApi {
   pickFolder(): Promise<string | null>;
@@ -197,6 +285,16 @@ export interface FairscapeApi {
   setAutoApprove(on: boolean): Promise<void>;
   getScore(dir: string): Promise<AggregatedScore | null>;
   openDatasheet(dir: string): Promise<void>;
+  /** Read & parse <dir>/ro-crate-metadata.json into a Crate (null on error). */
+  readCrate(dir: string): Promise<Crate | null>;
+  /** Build an evidence graph rooted at `arkId` via the CLI; returns its JSON. */
+  buildEvidenceGraph(dir: string, arkId: string): Promise<RawGraphData | null>;
+  /** Apply field edits to one entity (JSON read-modify-write), return the reloaded crate. */
+  updateEntity(dir: string, id: string, patch: EntityPatch): Promise<Crate | null>;
+  /** Register a new Dataset/Software/Computation via `fairscape-cli rocrate register`. */
+  addEntity(dir: string, entity: NewEntity): Promise<CliResult>;
+  /** Validate the crate against ROCrate v1.2 via `fairscape-cli rocrate validate`. */
+  validateCrate(dir: string): Promise<CliResult>;
   /** Read persisted settings (engine, models, saved-key hints). */
   getConfig(): Promise<StudioConfig>;
   /** Persist settings (does not include API keys — use saveOpencodeKey). */
@@ -225,6 +323,11 @@ export const CH = {
   setAutoApprove: 'wizard:autoApprove',
   getScore: 'score:get',
   openDatasheet: 'datasheet:open',
+  readCrate: 'rocrate:read',
+  buildEvidenceGraph: 'rocrate:buildEvidenceGraph',
+  updateEntity: 'rocrate:updateEntity',
+  addEntity: 'rocrate:addEntity',
+  validateCrate: 'rocrate:validate',
   getConfig: 'config:get',
   saveConfig: 'config:save',
   saveOpencodeKey: 'config:saveOpencodeKey',

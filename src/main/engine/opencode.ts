@@ -1,8 +1,9 @@
 import path from 'node:path';
-import type { OpencodeClient, Config, Event, Part, Permission } from '@opencode-ai/sdk';
+import type { OpencodeClient, Config, Event, Part } from '@opencode-ai/sdk';
 import type { AgentEvent, PermissionDecision, WizardStart } from '../../shared/types';
 import { DEFAULT_OPENCODE_PORT } from '../../shared/types';
 import { ensureProjectSkills } from '../skills';
+import { ensureOpencodeOnPath } from '../opencode-binary';
 import { getConfig, loadOpencodeKeys } from '../settings';
 import type { AgentEngine, PostFn } from './types';
 import { gradingWritePath, initialPrompt } from './shared';
@@ -15,6 +16,22 @@ const loadOc = (): Promise<OcModule> => (ocPromise ??= import('@opencode-ai/sdk'
 const msg = (err: unknown): string => (err instanceof Error ? err.message : String(err));
 
 type Reply = 'once' | 'always' | 'reject';
+
+/**
+ * Shape of a streamed permission request. Current opencode builds emit a `permission.asked`
+ * event whose payload uses `permission`/`patterns`; the SDK's typed `permission.updated` used
+ * `type`/`pattern`/`title`. We read both forms so either maps onto the renderer's PermissionRequest.
+ */
+interface PermissionAsk {
+  id: string;
+  sessionID: string;
+  permission?: string;
+  type?: string;
+  patterns?: string[];
+  pattern?: string;
+  title?: string;
+  metadata?: Record<string, unknown>;
+}
 
 /**
  * Drives one run of /fairscape-rocrate-wizard via OpenCode's SDK. OpenCode runs the same
@@ -54,6 +71,8 @@ export class OpencodeEngine implements AgentEngine {
 
   async start(): Promise<void> {
     ensureProjectSkills(this.directory);
+    // Put the bundled `opencode` binary on PATH so the SDK can spawn it without a separate install.
+    const bundled = ensureOpencodeOnPath();
     const port = getConfig().opencode.port ?? DEFAULT_OPENCODE_PORT;
     const keys = loadOpencodeKeys();
 
@@ -74,9 +93,10 @@ export class OpencodeEngine implements AgentEngine {
     } catch (err) {
       return this.send({
         kind: 'error',
-        message:
-          `Could not start the OpenCode server. Is the \`opencode\` CLI installed and on your PATH? ` +
-          `(${msg(err)})`,
+        message: bundled
+          ? `Could not start the bundled OpenCode server (${msg(err)}).`
+          : `Could not start the OpenCode server. The bundled \`opencode\` binary wasn't found, ` +
+            `so a CLI on your PATH is required. (${msg(err)})`,
       });
     }
     this.client = started.client;
@@ -95,10 +115,13 @@ export class OpencodeEngine implements AgentEngine {
     }
 
     // Establish the event subscription *before* creating/prompting the session so no early
-    // streaming events are missed.
+    // streaming events are missed. The `/event` stream is scoped to a project directory, so it
+    // MUST be subscribed for the same `directory` the session runs in — otherwise the server
+    // delivers only server-level events (connected/heartbeat) and none of this session's
+    // message/permission/idle events, leaving the UI stuck "working" forever.
     let stream: AsyncIterable<Event>;
     try {
-      const sub = await this.client.event.subscribe();
+      const sub = await this.client.event.subscribe({ query: { directory: this.directory } });
       stream = sub.stream as AsyncIterable<Event>;
     } catch (err) {
       return this.send({ kind: 'error', message: `Could not open the OpenCode event stream: ${msg(err)}` });
@@ -136,12 +159,18 @@ export class OpencodeEngine implements AgentEngine {
   }
 
   private translate(event: Event): void {
+    // opencode streams permission requests as `permission.asked` (older builds / the SDK's typed
+    // union used `permission.updated`). Match on the raw string since `asked` isn't in the SDK's
+    // Event type. Missing this is why every Bash/Write hung waiting for an approval that the
+    // renderer was never told to ask for.
+    const type = event.type as string;
+    if (type === 'permission.asked' || type === 'permission.updated') {
+      this.onPermission(event.properties as unknown as PermissionAsk);
+      return;
+    }
     switch (event.type) {
       case 'message.part.updated':
         this.onPart(event.properties.part);
-        break;
-      case 'permission.updated':
-        this.onPermission(event.properties);
         break;
       case 'session.idle':
         // Turn boundary for the main session → the wizard is awaiting our next message.
@@ -190,16 +219,25 @@ export class OpencodeEngine implements AgentEngine {
     }
   }
 
-  private onPermission(perm: Permission): void {
-    if (this.closed || this.handledPermissions.has(perm.id)) return; // permission.updated can repeat
+  private onPermission(perm: PermissionAsk): void {
+    if (this.closed || this.handledPermissions.has(perm.id)) return; // the event can repeat
     this.handledPermissions.add(perm.id);
+
+    const toolName = perm.permission ?? perm.type ?? 'tool';
+    const pattern = perm.patterns?.[0] ?? perm.pattern;
+    const title =
+      (perm.metadata?.description as string | undefined) ??
+      (perm.metadata?.command as string | undefined) ??
+      perm.title ??
+      pattern ??
+      toolName;
 
     // Grading writes (the parallel score.json files) are auto-allowed — same rationale as the
     // Claude engine: we know where they land and parallel prompts used to stall grading.
     const gradingPath = this.gradingPermissionPath(perm);
     if (gradingPath) {
       this.onGradingWrite?.(gradingPath);
-      this.send({ kind: 'tool', name: perm.type, input: perm.metadata, gradingPath });
+      this.send({ kind: 'tool', name: toolName, input: perm.metadata, gradingPath });
       void this.reply(perm.sessionID, perm.id, 'once');
       return;
     }
@@ -211,9 +249,9 @@ export class OpencodeEngine implements AgentEngine {
 
     this.post('permission', {
       id: perm.id,
-      toolName: perm.type,
-      title: perm.title,
-      input: { ...perm.metadata, pattern: perm.pattern },
+      toolName,
+      title,
+      input: { ...perm.metadata, pattern },
     });
     this.pendingPermissions.set(perm.id, {
       sessionID: perm.sessionID,
@@ -223,9 +261,14 @@ export class OpencodeEngine implements AgentEngine {
   }
 
   /** Best-effort: does this permission target a path inside <dir>/grading/? */
-  private gradingPermissionPath(perm: Permission): string | null {
+  private gradingPermissionPath(perm: PermissionAsk): string | null {
     const root = path.resolve(this.directory, 'grading');
-    const candidates: unknown[] = [perm.pattern, perm.title, ...Object.values(perm.metadata ?? {})];
+    const candidates: unknown[] = [
+      ...(perm.patterns ?? []),
+      perm.pattern,
+      perm.title,
+      ...Object.values(perm.metadata ?? {}),
+    ];
     for (const c of candidates) {
       if (typeof c !== 'string') continue;
       const direct = gradingWritePath(this.directory, c);
@@ -252,7 +295,7 @@ export class OpencodeEngine implements AgentEngine {
   private async sendPrompt(text: string): Promise<void> {
     if (!this.client || !this.sessionID) return;
     try {
-      await this.client.session.prompt({
+      const res = await this.client.session.prompt({
         path: { id: this.sessionID },
         query: { directory: this.directory },
         body: {
@@ -260,6 +303,13 @@ export class OpencodeEngine implements AgentEngine {
           parts: [{ type: 'text', text }],
         },
       });
+      // The SDK reports failures as a `res.error` field rather than throwing, and a failed prompt
+      // emits no streaming events — so without this check a bad model/auth leaves the UI stuck
+      // "working" forever. (An intentional abort resolves with no error, so this won't misfire.)
+      if (res.error && !this.closed) {
+        const e = res.error as { name?: string; data?: { message?: string } };
+        this.send({ kind: 'error', message: e.data?.message ?? e.name ?? `OpenCode prompt failed: ${msg(res.error)}` });
+      }
     } catch (err) {
       if (!this.closed) this.send({ kind: 'error', message: msg(err) });
     }

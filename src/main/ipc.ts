@@ -2,8 +2,16 @@ import { ipcMain, dialog, shell, BrowserWindow } from 'electron';
 import fs from 'node:fs';
 import path from 'node:path';
 import { CH } from '../shared/types';
-import type { FairscapeState, PermissionDecision, StudioConfig, WizardStart } from '../shared/types';
+import type {
+  EntityPatch,
+  FairscapeState,
+  NewEntity,
+  PermissionDecision,
+  StudioConfig,
+  WizardStart,
+} from '../shared/types';
 import { createEngine, type AgentEngine, type PostFn } from './engine';
+import { readCrate, buildEvidenceGraph, updateEntity, addEntity, validateCrate } from './crate';
 import { StateWatcher } from './state-watcher';
 import { GradingWatcher } from './grading-watcher';
 import { getConfig, saveConfig, saveOpencodeKey } from './settings';
@@ -84,6 +92,23 @@ export function registerIpc(): void {
     const p = path.join(dir, 'ro-crate-datasheet.html');
     if (fs.existsSync(p)) await shell.openPath(p);
   });
+
+  // --- Crate Workspace (explore / evidence graph / edit-add) ---
+  ipcMain.handle(CH.readCrate, async (_e, dir: string) => readCrate(dir));
+
+  ipcMain.handle(CH.buildEvidenceGraph, async (_e, p: { dir: string; arkId: string }) =>
+    buildEvidenceGraph(p.dir, p.arkId),
+  );
+
+  ipcMain.handle(CH.updateEntity, async (_e, p: { dir: string; id: string; patch: EntityPatch }) =>
+    updateEntity(p.dir, p.id, p.patch),
+  );
+
+  ipcMain.handle(CH.addEntity, async (_e, p: { dir: string; entity: NewEntity }) =>
+    addEntity(p.dir, p.entity),
+  );
+
+  ipcMain.handle(CH.validateCrate, async (_e, dir: string) => validateCrate(dir));
 
   ipcMain.handle(CH.getConfig, async () => getConfig());
 
