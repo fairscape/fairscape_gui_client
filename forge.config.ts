@@ -23,7 +23,11 @@ const config: ForgeConfig = {
     // used on every OS); we ship that single self-contained file straight into the app's
     // resources/ dir, which sidesteps node_modules pruning. opencode-binary.ts resolves it at
     // `process.resourcesPath/opencode.exe` and puts it on PATH for the SDK.
-    extraResource: ['./node_modules/opencode-ai/bin/opencode.exe'],
+    //
+    // Ship the vendored wizard skills too: `./skills` lands at
+    // `process.resourcesPath/skills`, which is what skillsSourceDir() reads in
+    // packaged builds (end-user machines have no fairscape_grader sibling).
+    extraResource: ['./node_modules/opencode-ai/bin/opencode.exe', './skills'],
   },
   rebuildConfig: {},
   makers: [

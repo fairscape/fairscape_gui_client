@@ -3,15 +3,18 @@ import path from 'node:path';
 import fs from 'node:fs';
 
 /**
- * Absolute path to the bundled fairscape_grader skills (`.../.claude/skills`).
- * Override with FAIRSCAPE_SKILLS_DIR. Packaged builds ship them under resources/.
+ * Absolute path to the wizard skills directory, or null if none is found.
+ *
+ * The skills are vendored into this repo under `skills/` (synced from
+ * fairscape_grader/.claude/skills) so that a fresh clone *or* a packaged build
+ * always ships them — no sibling repo required. In dev they resolve relative to
+ * the app root; packaged builds get them from resources/ (see forge.config.ts
+ * `extraResource`). Override the location with FAIRSCAPE_SKILLS_DIR.
  */
-export function skillsSourceDir(): string {
+export function skillsSourceDir(): string | null {
   if (process.env.FAIRSCAPE_SKILLS_DIR) return process.env.FAIRSCAPE_SKILLS_DIR;
-  if (app.isPackaged) return path.join(process.resourcesPath, 'skills');
-  const candidates = [
-    path.resolve(app.getAppPath(), '..', 'fairscape_grader', '.claude', 'skills'),
-    '/home/oj/fairscape/fairscape_grader/.claude/skills',
-  ];
-  return candidates.find((c) => fs.existsSync(c)) ?? candidates[candidates.length - 1];
+  const dir = app.isPackaged
+    ? path.join(process.resourcesPath, 'skills')
+    : path.join(app.getAppPath(), 'skills');
+  return fs.existsSync(dir) ? dir : null;
 }
