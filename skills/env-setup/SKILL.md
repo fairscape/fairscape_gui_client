@@ -10,7 +10,7 @@ The user just hit a preflight failure. This skill walks them out of it: figures 
 ## What to tell the user
 
 > *"Preflight found `<N>` blockers. I can help you fix them. Two install paths:*
-> *  - **PyPI install** (recommended — what most users want). One `pip install fairscape-cli fairscape-wizard` and you're done.*
+> *  - **PyPI install** (recommended — what most users want). One `pip install fairscape-wizard` and you're done.*
 > *  - **Editable dev install** (only if you're working out of the fairscape repos themselves — common for fairscape developers). I'd `pip install -e` each sibling repo.*
 > *Either way, I can set up a fresh `.venv` in the current directory first so we don't touch your system Python. I'll ask before running anything."*
 
@@ -52,11 +52,11 @@ Use the result to inform the next questions. Specifically:
 ## 2. Ask the install path
 
 > *"PyPI install or editable dev install?*
-> *  1. **PyPI** — `pip install fairscape-cli fairscape-wizard` from the index. Most users want this.*
+> *  1. **PyPI** — `pip install fairscape-wizard` from the index. Most users want this.*
 > *  2. **Editable** — found sibling repos at `<paths>`. `pip install -e` each. Pick this only if you're a fairscape developer working out of these repos.*
 > *  Or `skip` and I'll print the commands for you to run yourself."*
 
-(If no sibling repos were found, collapse to: *"PyPI install — `pip install fairscape-cli fairscape-wizard`. Or `skip` and I'll print the command."*)
+(If no sibling repos were found, collapse to: *"PyPI install — `pip install fairscape-wizard`. Or `skip` and I'll print the command."*)
 
 ## 3. Ask about a venv
 
@@ -74,7 +74,7 @@ After creation, **you cannot rely on `source .venv/bin/activate` persisting acro
 
 ```bash
 ./.venv/bin/pip install --upgrade pip
-./.venv/bin/pip install fairscape-cli fairscape-wizard
+./.venv/bin/pip install fairscape-wizard
 ```
 
 If the user is already in a venv, just use `pip install` directly — the active venv's pip is what runs.
@@ -86,10 +86,10 @@ If `uv` is available and the user wants speed, offer `uv pip install` instead of
 **PyPI path**:
 
 ```bash
-<pip-binary> install fairscape-cli fairscape-wizard
+<pip-binary> install fairscape-wizard
 ```
 
-`fairscape-cli` pulls `fairscape-models` as a dep (`fairscape-models>=1.1.1`). `fairscape-wizard` pulls both.
+`fairscape-wizard` declares `fairscape-cli` and `fairscape-models` as dependencies, so this one command pulls all three (plus `pydantic-ai` and `pyyaml`). No need to name `fairscape-cli` separately.
 
 **Editable path**: order matters because `fairscape-cli` depends on `fairscape-models`, and `fairscape-wizard` depends on both. Run in this order:
 
@@ -129,7 +129,7 @@ You can install by running:
 
   python3 -m venv .venv && source ./.venv/bin/activate
   pip install --upgrade pip
-  pip install fairscape-cli fairscape-wizard
+  pip install fairscape-wizard
 
 Then re-run the wizard.
 ```
