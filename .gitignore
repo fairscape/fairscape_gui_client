@@ -90,3 +90,6 @@ typings/
 
 # Electron-Forge
 out/
+
+# Bundled Python (built per-platform by scripts/fetch-python.mjs)
+prebuilt/

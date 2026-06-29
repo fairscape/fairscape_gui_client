@@ -74,6 +74,47 @@ export interface GradingProgress {
   done: number;
 }
 
+// ---------------------------------------------------------------------------
+// First-run setup — native Python-environment bootstrap (replaces the LLM-driven
+// preflight-check / env-setup skills with a deterministic Setup Gate).
+// ---------------------------------------------------------------------------
+
+/** One requirement row in the Setup Gate checklist. */
+export interface PythonCheck {
+  name: string;
+  ok: boolean;
+  detail: string;
+  blocker: boolean;
+}
+
+/** Result of inspecting the environment the wizard will run in. */
+export interface PythonEnvStatus {
+  ok: boolean;
+  python: string | null;
+  pythonVersion: string | null;
+  /** True once the app-managed venv exists (vs. checking bare system Python). */
+  managed: boolean;
+  checks: PythonCheck[];
+}
+
+/** PyPI (default, for end users) or editable from local sibling repos (developers). */
+export type InstallMode = 'pypi' | 'editable';
+
+/** What the Setup Gate needs to decide which install paths to offer. */
+export interface InstallContext {
+  hasSystemPython: boolean;
+  systemPythonVersion: string | null;
+  /** uv available — used (instead of pip) for a much faster install. */
+  hasUv: boolean;
+  siblingRepos: Partial<Record<'fairscape_models' | 'fairscape-cli' | 'fairscape_grader', string>>;
+}
+
+/** A streamed line of install output (main -> renderer). */
+export interface SetupLogLine {
+  stream: 'out' | 'err' | 'info';
+  text: string;
+}
+
 /** Which agent engine drives the wizard. */
 export type EngineId = 'claude' | 'opencode';
 
@@ -303,6 +344,12 @@ export interface FairscapeApi {
   saveOpencodeKey(providerID: string, key: string): Promise<void>;
   /** Whether the user is logged into Claude Code (subscription auth). */
   checkClaudeLogin(): Promise<boolean>;
+  /** Inspect the wizard's Python environment (managed venv or system). */
+  checkPythonEnv(): Promise<PythonEnvStatus>;
+  /** Detect available install paths (system Python, uv, sibling repos) for the Setup Gate. */
+  detectInstallContext(): Promise<InstallContext>;
+  /** Create/populate the managed venv with the wizard's deps; logs stream via onSetupLog. */
+  installPythonEnv(mode: InstallMode): Promise<PythonEnvStatus>;
   /** Start a short-lived `opencode serve`, push saved keys, and list providers/models. */
   listOpencodeModels(opts?: { port?: number }): Promise<OpencodeProviders>;
   onAgentEvent(cb: (e: AgentEvent) => void): () => void;
@@ -310,6 +357,8 @@ export interface FairscapeApi {
   onQuestion(cb: (q: WizardQuestion) => void): () => void;
   onPermission(cb: (p: PermissionRequest) => void): () => void;
   onGradingProgress(cb: (p: GradingProgress) => void): () => void;
+  /** Streamed install output during installPythonEnv. */
+  onSetupLog(cb: (line: SetupLogLine) => void): () => void;
 }
 
 /** IPC channel names — single source of truth for both processes. */
@@ -332,6 +381,9 @@ export const CH = {
   saveConfig: 'config:save',
   saveOpencodeKey: 'config:saveOpencodeKey',
   checkClaudeLogin: 'auth:checkClaude',
+  checkPythonEnv: 'setup:checkPython',
+  detectInstallContext: 'setup:detectContext',
+  installPythonEnv: 'setup:installPython',
   listOpencodeModels: 'opencode:listModels',
   // main -> renderer events
   agentEvent: 'agent:event',
@@ -339,4 +391,5 @@ export const CH = {
   question: 'wizard:question',
   permission: 'wizard:permissionRequest',
   gradingProgress: 'grading:progress',
+  setupLog: 'setup:log',
 } as const;

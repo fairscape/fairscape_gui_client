@@ -8,6 +8,7 @@ import type {
   PermissionRequest,
   PermissionDecision,
   GradingProgress,
+  SetupLogLine,
 } from './shared/types';
 
 function subscribe<T>(channel: string, cb: (payload: T) => void): () => void {
@@ -36,12 +37,16 @@ const api: FairscapeApi = {
   saveConfig: (config) => ipcRenderer.invoke(CH.saveConfig, config),
   saveOpencodeKey: (providerID, key) => ipcRenderer.invoke(CH.saveOpencodeKey, { providerID, key }),
   checkClaudeLogin: () => ipcRenderer.invoke(CH.checkClaudeLogin),
+  checkPythonEnv: () => ipcRenderer.invoke(CH.checkPythonEnv),
+  detectInstallContext: () => ipcRenderer.invoke(CH.detectInstallContext),
+  installPythonEnv: (mode) => ipcRenderer.invoke(CH.installPythonEnv, mode),
   listOpencodeModels: (opts) => ipcRenderer.invoke(CH.listOpencodeModels, opts),
   onAgentEvent: (cb) => subscribe<AgentEvent>(CH.agentEvent, cb),
   onStateChange: (cb) => subscribe<FairscapeState>(CH.stateChange, cb),
   onQuestion: (cb) => subscribe<WizardQuestion>(CH.question, cb),
   onPermission: (cb) => subscribe<PermissionRequest>(CH.permission, cb),
   onGradingProgress: (cb) => subscribe<GradingProgress>(CH.gradingProgress, cb),
+  onSetupLog: (cb) => subscribe<SetupLogLine>(CH.setupLog, cb),
 };
 
 contextBridge.exposeInMainWorld('fairscape', api);

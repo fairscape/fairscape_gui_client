@@ -2,6 +2,7 @@ import { app, BrowserWindow } from 'electron';
 import path from 'node:path';
 import started from 'electron-squirrel-startup';
 import { registerIpc, disposeIpc } from './main/ipc';
+import { applyPythonEnvToPath } from './main/python-env';
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (started) {
@@ -42,6 +43,9 @@ const createWindow = () => {
 };
 
 app.on('ready', () => {
+  // If a previous run already built the managed Python venv, put it first on PATH so the
+  // agent's `python3` / `fairscape-cli` resolve to it (and its preflight passes instantly).
+  applyPythonEnvToPath();
   registerIpc();
   createWindow();
 });

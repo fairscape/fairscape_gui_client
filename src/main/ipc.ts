@@ -5,6 +5,7 @@ import { CH } from '../shared/types';
 import type {
   EntityPatch,
   FairscapeState,
+  InstallMode,
   NewEntity,
   PermissionDecision,
   StudioConfig,
@@ -16,6 +17,7 @@ import { StateWatcher } from './state-watcher';
 import { GradingWatcher } from './grading-watcher';
 import { getConfig, saveConfig, saveOpencodeKey } from './settings';
 import { hasClaudeLogin } from './auth';
+import { checkPythonEnv, detectInstallContext, installPythonEnv } from './python-env';
 import { listOpencodeModels } from './opencode-models';
 
 let session: AgentEngine | null = null;
@@ -119,6 +121,15 @@ export function registerIpc(): void {
   );
 
   ipcMain.handle(CH.checkClaudeLogin, async () => hasClaudeLogin());
+
+  // --- First-run setup (native Python-env bootstrap) ---
+  ipcMain.handle(CH.checkPythonEnv, async () => checkPythonEnv());
+
+  ipcMain.handle(CH.detectInstallContext, async () => detectInstallContext());
+
+  ipcMain.handle(CH.installPythonEnv, async (_e, mode: InstallMode) =>
+    installPythonEnv(mode, (line) => send(CH.setupLog, line)),
+  );
 
   ipcMain.handle(CH.listOpencodeModels, async (_e, opts?: { port?: number }) =>
     listOpencodeModels(opts?.port),

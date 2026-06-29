@@ -6,6 +6,9 @@ import { MakerRpm } from '@electron-forge/maker-rpm';
 import { VitePlugin } from '@electron-forge/plugin-vite';
 import { FusesPlugin } from '@electron-forge/plugin-fuses';
 import { FuseV1Options, FuseVersion } from '@electron/fuses';
+import { existsSync } from 'node:fs';
+import path from 'node:path';
+import { execFileSync } from 'node:child_process';
 
 const config: ForgeConfig = {
   packagerConfig: {
@@ -27,9 +30,26 @@ const config: ForgeConfig = {
     // Ship the vendored wizard skills too: `./skills` lands at
     // `process.resourcesPath/skills`, which is what skillsSourceDir() reads in
     // packaged builds (end-user machines have no fairscape_grader sibling).
-    extraResource: ['./node_modules/opencode-ai/bin/opencode.exe', './skills'],
+    //
+    // Ship the self-contained Python: `./prebuilt/pyenv` lands at
+    // `process.resourcesPath/pyenv`, which python-env.ts's bundledRoot() resolves so the
+    // Setup Gate auto-skips (end users install no Python). Built per-platform by
+    // scripts/fetch-python.mjs (see the generateAssets hook below).
+    extraResource: ['./node_modules/opencode-ai/bin/opencode.exe', './skills', './prebuilt/pyenv'],
   },
   rebuildConfig: {},
+  hooks: {
+    // Build the bundled Python for THIS platform before packaging, if it isn't there yet.
+    // Runs natively on each CI runner (linux/macOS), so each artifact gets its own pyenv.
+    generateAssets: async () => {
+      const pyenv = path.resolve(__dirname, 'prebuilt', 'pyenv');
+      if (existsSync(pyenv)) return;
+      console.log('[forge] building bundled Python (scripts/fetch-python.mjs) …');
+      execFileSync('node', [path.resolve(__dirname, 'scripts', 'fetch-python.mjs')], {
+        stdio: 'inherit',
+      });
+    },
+  },
   makers: [
     new MakerSquirrel({}),
     new MakerZIP({}, ['darwin']),

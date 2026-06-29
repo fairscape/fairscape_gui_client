@@ -1,0 +1,54 @@
+name: Build (bundled Python)
+
+# Builds the desktop app with a self-contained Python bundled per platform. The Python
+# bundle (scripts/fetch-python.mjs) MUST be built natively on each OS — you can't install
+# native wheels (pydantic-core, pyarrow, …) for macOS from Linux — so each matrix leg
+# produces its own prebuilt/pyenv before packaging.
+
+on:
+  workflow_dispatch: {}
+  push:
+    tags: ['v*']
+
+jobs:
+  build:
+    name: ${{ matrix.label }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: ubuntu-latest, label: linux-x64 }
+          - { os: macos-14, label: macos-arm64 } # Apple Silicon
+          - { os: macos-13, label: macos-x64 } # Intel
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install JS deps
+        run: npm ci
+
+      - name: Build bundled Python (native)
+        run: npm run build:python
+
+      - name: Sanity-check the bundle
+        shell: bash
+        run: |
+          ./prebuilt/pyenv/bin/python3 -c "import fairscape_models, fairscape_cli, fairscape_wizard; from fairscape_wizard import rubric_eval; print('imports OK')"
+          PATH="$PWD/prebuilt/pyenv/bin:$PATH" fairscape-cli --help >/dev/null && echo "cli OK"
+
+      - name: Package
+        run: npm run make
+        # macOS signing/notarization: add APPLE_ID / APPLE_APP_SPECIFIC_PASSWORD / team id
+        # secrets and an osxSign/osxNotarize block in forge.config.ts, then they'll apply
+        # here. Unsigned builds run locally but Gatekeeper blocks distribution.
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: fairscape-studio-${{ matrix.label }}
+          path: out/make/**/*
+          if-no-files-found: error

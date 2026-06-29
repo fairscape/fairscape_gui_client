@@ -6,6 +6,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
 import { execFile } from 'node:child_process';
+import { activeCliPath, activeBinDir } from './python-env';
 import type { Crate, CrateEntity, EntityPatch, NewEntity, RawGraphData, CliResult } from '../shared/types';
 
 const METADATA = 'ro-crate-metadata.json';
@@ -30,10 +31,11 @@ export function readCrate(dir: string): Crate | null {
   }
 }
 
-/** Resolve the fairscape-cli binary: env override → ~/.local/bin → /usr/local/bin → PATH. */
+/** Resolve fairscape-cli: env override → managed venv → ~/.local/bin → /usr/local/bin → PATH. */
 function cliPath(): string {
   const candidates = [
     process.env.FAIRSCAPE_CLI,
+    activeCliPath(),
     path.join(os.homedir(), '.local', 'bin', 'fairscape-cli'),
     '/usr/local/bin/fairscape-cli',
   ].filter(Boolean) as string[];
@@ -51,7 +53,13 @@ function cliPath(): string {
 function runCli(args: string[], cwd?: string): Promise<CliResult> {
   return new Promise((resolve) => {
     const localBin = path.join(os.homedir(), '.local', 'bin');
-    const env = { ...process.env, PATH: `${localBin}:${process.env.PATH ?? ''}` };
+    // Bundled/managed bin first so the CLI (and any python it spawns) uses our env.
+    const env = {
+      ...process.env,
+      PATH: [activeBinDir(), localBin, process.env.PATH ?? '']
+        .filter(Boolean)
+        .join(path.delimiter),
+    };
     execFile(
       cliPath(),
       args,

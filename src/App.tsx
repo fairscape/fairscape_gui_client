@@ -24,6 +24,7 @@ import { GradingView } from '@/components/GradingView';
 import { GradingChecklist } from '@/components/GradingChecklist';
 import { CrateWorkspace } from '@/components/CrateWorkspace';
 import { SettingsPage } from '@/components/SettingsPage';
+import { SetupGate } from '@/components/SetupGate';
 import { Markdown } from '@/components/Markdown';
 import { cn } from '@/lib/utils';
 import { MODELS, ENGINES, studioRunModel } from '@/shared/types';
@@ -33,6 +34,8 @@ import { PHASES } from '@/shared/phases';
 export function App() {
   const w = useWizard();
   const [view, setView] = useState<'wizard' | 'score' | 'settings' | 'workspace'>('wizard');
+  // First-run gate: null = checking, false = needs setup, true = environment ready.
+  const [envOk, setEnvOk] = useState<boolean | null>(null);
   // The crate the workspace is viewing — either the wizard's folder or a standalone
   // folder opened from the Landing screen (a completed crate that wasn't built here).
   const [workspaceDir, setWorkspaceDir] = useState<string | null>(null);
@@ -49,6 +52,18 @@ export function App() {
       setView('score');
     }
   }, [w.score]);
+
+  useEffect(() => {
+    void window.fairscape.checkPythonEnv().then((s) => setEnvOk(s.ok));
+  }, []);
+
+  if (envOk === null)
+    return (
+      <div className="grid h-full place-items-center text-sm text-muted-foreground">
+        Checking environment…
+      </div>
+    );
+  if (!envOk) return <SetupGate onReady={() => setEnvOk(true)} />;
 
   if (view === 'settings') {
     return w.studioConfig ? (
