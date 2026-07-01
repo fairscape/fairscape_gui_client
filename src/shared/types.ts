@@ -140,6 +140,11 @@ export interface WizardStart {
    * "providerID/modelID" (e.g. "anthropic/claude-sonnet-4-5"). The OpenCode engine splits on '/'.
    */
   model: string;
+  /**
+   * Resume an already-built local crate (built by the manual flow): the agent must NOT
+   * re-import or re-scan, only continue from the AI-Ready enrichment phase onward.
+   */
+  resume?: boolean;
 }
 
 /** Claude model aliases (passed to the Agent SDK's options.model). */
@@ -304,6 +309,51 @@ export interface NewEntity {
   generated?: string[];
 }
 
+/**
+ * One file discovered by scanning the crate folder (manual-build Files tab). Paths are
+ * posix-relative to the crate root; `kind` is an extension-based Dataset/Software guess.
+ */
+export interface ScannedFile {
+  /** Relative path within the crate, posix-separated (e.g. `data/results.csv`). */
+  path: string;
+  /** Byte size from fs.stat. */
+  size: number;
+  /** Lower-case extension without the dot (e.g. `csv`), or '' if none. */
+  ext: string;
+  /** Guessed MIME type (extension map; `application/octet-stream` fallback). */
+  mime: string;
+  /** Extension-based entity-type guess. */
+  kind: 'dataset' | 'software';
+}
+
+/** Metadata for `fairscape-cli rocrate create` — the manual-build Init form. */
+export interface CreateCrateMeta {
+  name: string;
+  organizationName: string;
+  projectName: string;
+  description: string;
+  keywords: string[];
+  author?: string;
+  license?: string;
+  version?: string;
+}
+
+/** Arguments for `fairscape-cli schema infer` against one tabular file in the crate. */
+export interface SchemaInferInput {
+  /** File to infer the schema from, relative to the crate root (CSV/TSV/Parquet/HDF5). */
+  file: string;
+  name: string;
+  description: string;
+  guid?: string;
+}
+
+/** A manual-build progress update merged into <dir>/.fairscape-state.json. */
+export interface BuildStateUpdate {
+  phase?: Phase;
+  /** Appended (with a timestamp) to the state's `history` array. */
+  history?: { skill: string; summary: string };
+}
+
 /** Result of a fairscape-cli subprocess invocation. */
 export interface CliResult {
   ok: boolean;
@@ -334,6 +384,16 @@ export interface FairscapeApi {
   updateEntity(dir: string, id: string, patch: EntityPatch): Promise<Crate | null>;
   /** Register a new Dataset/Software/Computation via `fairscape-cli rocrate register`. */
   addEntity(dir: string, entity: NewEntity): Promise<CliResult>;
+  /** Recursively list files in the crate folder as registration candidates (Files tab). */
+  scanFiles(dir: string): Promise<ScannedFile[]>;
+  /** Initialize an RO-Crate in `dir` via `fairscape-cli rocrate create` (manual build). */
+  createCrate(dir: string, meta: CreateCrateMeta): Promise<CliResult>;
+  /** Infer a schema from a tabular file and append it to the crate via `schema infer`. */
+  inferSchema(dir: string, input: SchemaInferInput): Promise<CliResult>;
+  /** Merge arbitrary properties (incl. rai:* / evi:Schema) into one entity; reloads the crate. */
+  setEntityProps(dir: string, id: string, props: Record<string, unknown>): Promise<Crate | null>;
+  /** Merge a manual-build progress update into <dir>/.fairscape-state.json. */
+  writeBuildState(dir: string, update: BuildStateUpdate): Promise<void>;
   /** Validate the crate against ROCrate v1.2 via `fairscape-cli rocrate validate`. */
   validateCrate(dir: string): Promise<CliResult>;
   /** Read persisted settings (engine, models, saved-key hints). */
@@ -376,6 +436,11 @@ export const CH = {
   buildEvidenceGraph: 'rocrate:buildEvidenceGraph',
   updateEntity: 'rocrate:updateEntity',
   addEntity: 'rocrate:addEntity',
+  scanFiles: 'rocrate:scanFiles',
+  createCrate: 'rocrate:create',
+  inferSchema: 'schema:infer',
+  setEntityProps: 'rocrate:setEntityProps',
+  writeBuildState: 'state:write',
   validateCrate: 'rocrate:validate',
   getConfig: 'config:get',
   saveConfig: 'config:save',

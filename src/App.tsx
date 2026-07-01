@@ -12,6 +12,8 @@ import {
   Boxes,
   CheckCircle2,
   AlertTriangle,
+  Pencil,
+  FilePlus2,
   Settings as SettingsIcon,
 } from 'lucide-react';
 import { useWizard } from '@/hooks/useWizard';
@@ -23,6 +25,7 @@ import { PermissionDialog } from '@/components/PermissionDialog';
 import { GradingView } from '@/components/GradingView';
 import { GradingChecklist } from '@/components/GradingChecklist';
 import { CrateWorkspace } from '@/components/CrateWorkspace';
+import { ManualInit } from '@/components/ManualInit';
 import { SettingsPage } from '@/components/SettingsPage';
 import { SetupGate } from '@/components/SetupGate';
 import { Markdown } from '@/components/Markdown';
@@ -33,17 +36,38 @@ import { PHASES } from '@/shared/phases';
 
 export function App() {
   const w = useWizard();
-  const [view, setView] = useState<'wizard' | 'score' | 'settings' | 'workspace'>('wizard');
-  // First-run gate: null = checking, false = needs setup, true = environment ready.
-  const [envOk, setEnvOk] = useState<boolean | null>(null);
+  const [view, setView] = useState<'wizard' | 'score' | 'settings' | 'workspace' | 'manual-init'>(
+    'wizard',
+  );
+  // Setup gate: false = still on the gate, true = user confirmed the environment & continued.
+  // Starts false so the gate is always shown (never silently skipped) — see below.
+  const [envOk, setEnvOk] = useState(false);
   // The crate the workspace is viewing — either the wizard's folder or a standalone
   // folder opened from the Landing screen (a completed crate that wasn't built here).
   const [workspaceDir, setWorkspaceDir] = useState<string | null>(null);
+  // 'build' = the manual human-input flow (shows Schemas/AI-Ready tabs + Continue-with-AI).
+  const [workspaceMode, setWorkspaceMode] = useState<'open' | 'build'>('open');
+  // Folder picked on the Landing screen for a manual build, before the crate is created.
+  const [manualDir, setManualDir] = useState<string | null>(null);
   const revealed = useRef(false);
 
-  const openWorkspace = (dir: string) => {
+  const openWorkspace = (dir: string, mode: 'open' | 'build' = 'open') => {
     setWorkspaceDir(dir);
+    setWorkspaceMode(mode);
     setView('workspace');
+  };
+
+  // Hand a manually built crate to the agent: resume from AI-Ready (skip import/scan).
+  const continueWithAI = (dir: string) => {
+    if (!w.studioConfig) return;
+    w.start({
+      mode: 'local',
+      dir,
+      resume: true,
+      engine: w.studioConfig.engine,
+      model: studioRunModel(w.studioConfig),
+    });
+    setView('wizard');
   };
 
   useEffect(() => {
@@ -53,16 +77,9 @@ export function App() {
     }
   }, [w.score]);
 
-  useEffect(() => {
-    void window.fairscape.checkPythonEnv().then((s) => setEnvOk(s.ok));
-  }, []);
-
-  if (envOk === null)
-    return (
-      <div className="grid h-full place-items-center text-sm text-muted-foreground">
-        Checking environment…
-      </div>
-    );
+  // Always show the Setup Gate first — even when the environment is already green — so the
+  // user sees which Python interpreter the wizard will use and explicitly confirms before
+  // import. The gate runs its own checkPythonEnv() and shows a one-click Continue when ready.
   if (!envOk) return <SetupGate onReady={() => setEnvOk(true)} />;
 
   if (view === 'settings') {
@@ -80,8 +97,27 @@ export function App() {
     );
   }
 
+  if (view === 'manual-init' && manualDir) {
+    return (
+      <ManualInit
+        dir={manualDir}
+        onCreated={(d) => openWorkspace(d, 'build')}
+        onBack={() => setView('wizard')}
+      />
+    );
+  }
+
   if (view === 'workspace' && workspaceDir) {
-    return <CrateWorkspace dir={workspaceDir} onBack={() => setView(w.score ? 'score' : 'wizard')} />;
+    return (
+      <CrateWorkspace
+        dir={workspaceDir}
+        mode={workspaceMode}
+        onContinueWithAI={
+          workspaceMode === 'build' ? () => continueWithAI(workspaceDir) : undefined
+        }
+        onBack={() => setView(w.score ? 'score' : 'wizard')}
+      />
+    );
   }
 
   if (!w.started)
@@ -89,9 +125,13 @@ export function App() {
       <Landing
         pickFolder={w.pickFolder}
         onStart={w.start}
+        onStartManual={(dir) => {
+          setManualDir(dir);
+          setView('manual-init');
+        }}
         config={w.studioConfig}
         onOpenSettings={() => setView('settings')}
-        onOpenExisting={openWorkspace}
+        onOpenExisting={(dir) => openWorkspace(dir)}
       />
     );
 
@@ -344,18 +384,22 @@ function Header({
 function Landing({
   pickFolder,
   onStart,
+  onStartManual,
   config,
   onOpenSettings,
   onOpenExisting,
 }: {
   pickFolder: () => Promise<string | null>;
   onStart: (config: WizardStart) => void;
+  onStartManual: (dir: string) => void;
   config: StudioConfig | null;
   onOpenSettings: () => void;
   onOpenExisting: (dir: string) => void;
 }) {
   const [flow, setFlow] = useState<'create' | 'open'>('create');
   const [mode, setMode] = useState<'local' | 'remote'>('local');
+  // Local folders can be built by the agent ('ai') or by hand ('manual'); remote is AI-only.
+  const [buildMethod, setBuildMethod] = useState<'ai' | 'manual'>('ai');
   const [dir, setDir] = useState<string | null>(null);
   const [sourceRef, setSourceRef] = useState('');
 
@@ -370,8 +414,10 @@ function Landing({
   const runModel = config ? studioRunModel(config) : '';
   const needsModel = engine === 'opencode' && !config?.opencode.modelID;
 
+  const isManual = mode === 'local' && buildMethod === 'manual';
   const sourceReady = mode === 'local' ? !!dir : !!dir && sourceRef.trim().length > 0;
-  const ready = sourceReady && !!config && !needsModel;
+  // Manual builds run on the CLI, not the agent, so they don't need an engine/model.
+  const ready = isManual ? sourceReady : sourceReady && !!config && !needsModel;
 
   async function choose() {
     const d = await pickFolder();
@@ -379,6 +425,10 @@ function Landing({
   }
 
   function go() {
+    if (isManual) {
+      if (dir) onStartManual(dir);
+      return;
+    }
     if (!ready || !dir || !config) return;
     onStart({
       mode,
@@ -466,6 +516,29 @@ function Landing({
               </div>
             </div>
 
+            {/* Step 1b (local only): how to build it — AI vs manual */}
+            {mode === 'local' && (
+              <div className="mt-6">
+                <p className="mb-2 text-sm font-medium">2 · How do you want to build it?</p>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <ModeCard
+                    active={buildMethod === 'ai'}
+                    onClick={() => setBuildMethod('ai')}
+                    icon={<Sparkles className="size-5" />}
+                    title="AI-assisted"
+                    desc="The agent catalogs the folder, infers schemas, adds AI-Ready terms, and grades it."
+                  />
+                  <ModeCard
+                    active={buildMethod === 'manual'}
+                    onClick={() => setBuildMethod('manual')}
+                    icon={<Pencil className="size-5" />}
+                    title="Manual (I'll fill it in)"
+                    desc="You register datasets, schemas, and AI-Ready terms by hand — hand off to AI anytime."
+                  />
+                </div>
+              </div>
+            )}
+
             {/* Step 2: details */}
             <div className="mt-6">
               {mode === 'remote' && (
@@ -481,7 +554,7 @@ function Landing({
               )}
 
               <label className="mb-1 block text-sm font-medium">
-                {mode === 'local' ? '2 · Folder to turn into an RO-Crate' : '3 · Output folder for the RO-Crate'}
+                {mode === 'local' ? '3 · Folder to turn into an RO-Crate' : '3 · Output folder for the RO-Crate'}
               </label>
               <p className="mb-2 text-xs text-muted-foreground">
                 {mode === 'local'
@@ -507,49 +580,76 @@ function Landing({
             {/* Engine/model summary + start */}
             <div className="mt-7 flex flex-wrap items-center justify-between gap-3 border-t border-border pt-5">
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <span>Run with</span>
-                <button
-                  onClick={onOpenSettings}
-                  title="Change engine & model in Settings"
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-2.5 py-1 text-xs text-foreground hover:bg-accent"
-                >
-                  <SettingsIcon className="size-3.5" />
-                  {engineLabel}
-                  {runModel && <span className="text-muted-foreground">· {runModel}</span>}
-                </button>
-                {needsModel && <span className="text-xs text-warning">choose a model in Settings</span>}
+                {isManual ? (
+                  <span className="text-xs">Built locally with fairscape-cli — no AI engine needed.</span>
+                ) : (
+                  <>
+                    <span>Run with</span>
+                    <button
+                      onClick={onOpenSettings}
+                      title="Change engine & model in Settings"
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-2.5 py-1 text-xs text-foreground hover:bg-accent"
+                    >
+                      <SettingsIcon className="size-3.5" />
+                      {engineLabel}
+                      {runModel && <span className="text-muted-foreground">· {runModel}</span>}
+                    </button>
+                    {needsModel && <span className="text-xs text-warning">choose a model in Settings</span>}
+                  </>
+                )}
               </div>
               <button
                 onClick={go}
                 disabled={!ready}
                 className="inline-flex items-center gap-2 rounded-lg bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground transition hover:opacity-90 disabled:opacity-40"
               >
-                <Sparkles className="size-4" />
-                Start the wizard
+                {isManual ? (
+                  <>
+                    <FilePlus2 className="size-4" />
+                    Create the crate
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="size-4" />
+                    Start the wizard
+                  </>
+                )}
               </button>
             </div>
 
             {/* What happens next */}
-            <div className="mt-8 rounded-xl border border-border bg-card/50 p-5">
-              <p className="text-sm font-medium">What happens next</p>
-              <ol className="mt-3 grid gap-2 sm:grid-cols-2">
-                {PHASES.map((p, i) => (
-                  <li key={p.id} className="flex gap-2.5 text-sm">
-                    <span className="mt-0.5 grid size-5 shrink-0 place-items-center rounded-full bg-muted text-[11px] font-semibold text-muted-foreground">
-                      {i + 1}
-                    </span>
-                    <span>
-                      <span className="font-medium">{p.label}.</span>{' '}
-                      <span className="text-muted-foreground">{p.blurb}</span>
-                    </span>
-                  </li>
-                ))}
-              </ol>
-              <p className="mt-3 text-xs text-muted-foreground">
-                You answer questions as you go, and approve anything that gets written or run. Phases
-                3–6 are optional — you can stop after import.
-              </p>
-            </div>
+            {isManual ? (
+              <div className="mt-8 rounded-xl border border-border bg-card/50 p-5">
+                <p className="text-sm font-medium">What happens next</p>
+                <p className="mt-2 text-sm text-muted-foreground">
+                  You'll describe the crate, then register datasets, software, and computations,
+                  infer schemas for tabular files, and fill in AI-Ready (RAI) terms — all by hand.
+                  Your progress is saved as you go, so you can hand the crate to the AI for
+                  AI-Ready enrichment and grading whenever you're ready.
+                </p>
+              </div>
+            ) : (
+              <div className="mt-8 rounded-xl border border-border bg-card/50 p-5">
+                <p className="text-sm font-medium">What happens next</p>
+                <ol className="mt-3 grid gap-2 sm:grid-cols-2">
+                  {PHASES.map((p, i) => (
+                    <li key={p.id} className="flex gap-2.5 text-sm">
+                      <span className="mt-0.5 grid size-5 shrink-0 place-items-center rounded-full bg-muted text-[11px] font-semibold text-muted-foreground">
+                        {i + 1}
+                      </span>
+                      <span>
+                        <span className="font-medium">{p.label}.</span>{' '}
+                        <span className="text-muted-foreground">{p.blurb}</span>
+                      </span>
+                    </li>
+                  ))}
+                </ol>
+                <p className="mt-3 text-xs text-muted-foreground">
+                  You answer questions as you go, and approve anything that gets written or run. Phases
+                  3–6 are optional — you can stop after import.
+                </p>
+              </div>
+            )}
           </>
         ) : (
           <div className="mt-7">

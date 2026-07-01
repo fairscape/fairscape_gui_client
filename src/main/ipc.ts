@@ -3,16 +3,30 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { CH } from '../shared/types';
 import type {
+  BuildStateUpdate,
+  CreateCrateMeta,
   EntityPatch,
   FairscapeState,
   InstallMode,
   NewEntity,
   PermissionDecision,
+  SchemaInferInput,
   StudioConfig,
   WizardStart,
 } from '../shared/types';
 import { createEngine, type AgentEngine, type PostFn } from './engine';
-import { readCrate, buildEvidenceGraph, updateEntity, addEntity, validateCrate } from './crate';
+import {
+  readCrate,
+  buildEvidenceGraph,
+  updateEntity,
+  addEntity,
+  createCrate,
+  inferSchema,
+  setEntityProps,
+  validateCrate,
+} from './crate';
+import { writeBuildState } from './build-state';
+import { scanCrateFiles } from './scan';
 import { StateWatcher } from './state-watcher';
 import { GradingWatcher } from './grading-watcher';
 import { getConfig, saveConfig, saveOpencodeKey } from './settings';
@@ -108,6 +122,27 @@ export function registerIpc(): void {
 
   ipcMain.handle(CH.addEntity, async (_e, p: { dir: string; entity: NewEntity }) =>
     addEntity(p.dir, p.entity),
+  );
+
+  ipcMain.handle(CH.scanFiles, async (_e, p: { dir: string }) => scanCrateFiles(p.dir));
+
+  // --- Manual (human-input) local build ---
+  ipcMain.handle(CH.createCrate, async (_e, p: { dir: string; meta: CreateCrateMeta }) =>
+    createCrate(p.dir, p.meta),
+  );
+
+  ipcMain.handle(CH.inferSchema, async (_e, p: { dir: string; input: SchemaInferInput }) =>
+    inferSchema(p.dir, p.input),
+  );
+
+  ipcMain.handle(
+    CH.setEntityProps,
+    async (_e, p: { dir: string; id: string; props: Record<string, unknown> }) =>
+      setEntityProps(p.dir, p.id, p.props),
+  );
+
+  ipcMain.handle(CH.writeBuildState, async (_e, p: { dir: string; update: BuildStateUpdate }) =>
+    writeBuildState(p.dir, p.update),
   );
 
   ipcMain.handle(CH.validateCrate, async (_e, dir: string) => validateCrate(dir));

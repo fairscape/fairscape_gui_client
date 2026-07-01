@@ -90,6 +90,32 @@ export function entityLinks(entity: CrateEntity, index: Map<string, CrateEntity>
   return out;
 }
 
+/** Strip `file://` and leading slashes, normalize `\`→`/` — to compare crate paths to scan paths. */
+function normalizePath(p: string): string {
+  return p.replace(/^file:\/\//, '').replace(/\\/g, '/').replace(/^\/+/, '');
+}
+
+/**
+ * The set of crate-relative file paths already registered, derived from each entity's
+ * `contentUrl`. Used to mark scanned files as registered vs. pending in the Files tab.
+ */
+export function registeredPaths(crate: Crate | null): Set<string> {
+  const set = new Set<string>();
+  for (const e of crate?.['@graph'] ?? []) {
+    const url = e.contentUrl;
+    if (typeof url === 'string' && url) set.add(normalizePath(url));
+  }
+  return set;
+}
+
+/** Turn a file path into a human title: basename minus extension, `_`/`-` → space. */
+export function fileNameToTitle(filePath: string): string {
+  const base = filePath.split('/').pop() ?? filePath;
+  const dot = base.lastIndexOf('.');
+  const stem = dot > 0 ? base.slice(0, dot) : base;
+  return stem.replace(/[_-]+/g, ' ').trim();
+}
+
 /** Entities grouped by display type, each group sorted by name, groups sorted by name. */
 export function groupByType(crate: Crate | null): { type: string; entities: CrateEntity[] }[] {
   const groups = new Map<string, CrateEntity[]>();

@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Plus, Loader2, AlertTriangle } from 'lucide-react';
+import { Plus, Loader2, AlertTriangle, ArrowLeft } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { Crate, NewEntity } from '@/shared/types';
 import { Field, TextInput, TextArea, LinkMultiSelect, type LinkOption } from './FormControls';
@@ -14,25 +14,40 @@ const KINDS: { id: Kind; label: string }[] = [
 
 const today = () => new Date().toISOString().slice(0, 10);
 
+/** Initial values to seed the form with (Files tab prefills these from a scanned file). */
+export interface AddEntityPrefill {
+  kind?: Kind;
+  name?: string;
+  dataFormat?: string;
+  fileFormat?: string;
+  filepath?: string;
+}
+
 /** Register a new Dataset/Software/Computation into the crate via the CLI. */
 export function AddEntityForm({
   dir,
   crate,
   onAdded,
+  prefill,
+  onCancel,
 }: {
   dir: string;
   crate: Crate;
   onAdded: () => void;
+  /** Seed values from a scanned file (Files tab). Applied as initial state only. */
+  prefill?: AddEntityPrefill;
+  /** When set, show a "Back to files" affordance (Files-tab single-file flow). */
+  onCancel?: () => void;
 }) {
-  const [kind, setKind] = useState<Kind>('dataset');
-  const [name, setName] = useState('');
+  const [kind, setKind] = useState<Kind>(prefill?.kind ?? 'dataset');
+  const [name, setName] = useState(prefill?.name ?? '');
   const [description, setDescription] = useState('');
   const [keywords, setKeywords] = useState('');
   const [author, setAuthor] = useState('');
   const [version, setVersion] = useState('1.0');
-  const [dataFormat, setDataFormat] = useState('');
-  const [fileFormat, setFileFormat] = useState('');
-  const [filepath, setFilepath] = useState('');
+  const [dataFormat, setDataFormat] = useState(prefill?.dataFormat ?? '');
+  const [fileFormat, setFileFormat] = useState(prefill?.fileFormat ?? '');
+  const [filepath, setFilepath] = useState(prefill?.filepath ?? '');
   const [contentUrl, setContentUrl] = useState('');
   const [runBy, setRunBy] = useState('');
   const [command, setCommand] = useState('');
@@ -106,6 +121,15 @@ export function AddEntityForm({
 
   return (
     <div className="space-y-4">
+      {onCancel && (
+        <button
+          onClick={onCancel}
+          className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground"
+        >
+          <ArrowLeft className="size-3.5" /> Back to files
+        </button>
+      )}
+
       {/* Kind selector */}
       <div className="inline-flex rounded-lg border border-border p-0.5">
         {KINDS.map((k) => (

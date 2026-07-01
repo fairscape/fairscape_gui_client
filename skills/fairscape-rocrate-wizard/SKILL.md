@@ -27,7 +27,7 @@ Builds an RO-Crate from any source — a local project folder OR a dataset that'
 
 ### 1. Open
 
-**First**, invoke `preflight-check`. It verifies Python ≥ 3.10, the `fairscape-cli` binary on PATH, and that `fairscape_models`, `fairscape_cli`, and `fairscape_wizard` import. On pass, one-line confirmation and continue. On fail, surface the blockers and offer `env-setup` (it walks the user through PyPI vs editable dev install, optionally setting up a fresh `.venv`). If the user picks `skip` at env-setup, stop here — none of the phases below can run without the environment.
+**First**, run the environment check — **unless the launch message says the environment has already been verified.** FAIRSCAPE Studio (the GUI) runs a deterministic Setup Gate before launch and tells you so in its opening message; when it does, skip both `preflight-check` and `env-setup` and go straight to the working-directory check below. Otherwise (terminal use, or no such message), invoke `preflight-check`: it verifies Python ≥ 3.10, the `fairscape-cli` binary on PATH, and that `fairscape_models`, `fairscape_cli`, and `fairscape_wizard` import. On pass, one-line confirmation and continue. On fail, surface the blockers and offer `env-setup` (it walks the user through PyPI vs editable dev install, optionally setting up a fresh `.venv`). If the user picks `skip` at env-setup, stop here — none of the phases below can run without the environment.
 
 `Bash pwd` to confirm the working directory.
 

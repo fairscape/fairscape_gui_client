@@ -79,7 +79,8 @@ export function SetupGate({ onReady }: { onReady: () => void }) {
           <div>
             <h1 className="text-lg font-semibold tracking-tight">Setting up Fairscape Studio</h1>
             <p className="text-xs text-muted-foreground">
-              A one-time check of what the wizard needs. I install the rest — nothing for you to type.
+              A quick check of what the wizard needs — and which Python it&apos;ll use. I install
+              anything missing — nothing for you to type.
             </p>
           </div>
         </div>
@@ -128,12 +129,24 @@ export function SetupGate({ onReady }: { onReady: () => void }) {
           <div className="mt-5 border-t border-border pt-5">
             {pythonReady ? (
               <div className="flex items-center justify-between gap-3">
-                <p className="inline-flex items-center gap-2 text-sm text-success">
-                  <CheckCircle2 className="size-4" /> Environment ready.
-                </p>
+                <div className="min-w-0">
+                  <p className="inline-flex items-center gap-2 text-sm text-success">
+                    <CheckCircle2 className="size-4" /> Environment ready.
+                  </p>
+                  {status?.python && (
+                    <p
+                      className="mt-1 truncate text-xs text-muted-foreground"
+                      title={status.python}
+                    >
+                      {status.managed ? 'Managed environment' : 'System Python'}
+                      {status.pythonVersion ? ` · Python ${status.pythonVersion}` : ''} ·{' '}
+                      <span className="font-mono">{status.python}</span>
+                    </p>
+                  )}
+                </div>
                 <button
                   onClick={onReady}
-                  className="inline-flex items-center gap-2 rounded-lg bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground transition hover:opacity-90"
+                  className="inline-flex shrink-0 items-center gap-2 rounded-lg bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground transition hover:opacity-90"
                 >
                   Continue <ArrowRight className="size-4" />
                 </button>

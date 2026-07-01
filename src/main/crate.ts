@@ -7,7 +7,16 @@ import path from 'node:path';
 import os from 'node:os';
 import { execFile } from 'node:child_process';
 import { activeCliPath, activeBinDir } from './python-env';
-import type { Crate, CrateEntity, EntityPatch, NewEntity, RawGraphData, CliResult } from '../shared/types';
+import type {
+  Crate,
+  CrateEntity,
+  CreateCrateMeta,
+  EntityPatch,
+  NewEntity,
+  RawGraphData,
+  SchemaInferInput,
+  CliResult,
+} from '../shared/types';
 
 const METADATA = 'ro-crate-metadata.json';
 const DESCRIPTOR_IDS = new Set([METADATA, `./${METADATA}`, `/${METADATA}`]);
@@ -140,6 +149,37 @@ export function updateEntity(dir: string, id: string, patch: EntityPatch): Crate
 }
 
 /**
+ * Merge arbitrary properties into one entity (root or any node) by JSON read-modify-write.
+ * Unlike updateEntity (which maps a fixed EntityPatch), this writes raw keys verbatim —
+ * used for namespaced AI-Ready fields (rai:*, license, …) on the root and the evi:Schema
+ * back-link on a dataset. Only the supplied keys change; others are left untouched.
+ */
+export function setEntityProps(dir: string, id: string, props: Record<string, unknown>): Crate | null {
+  const file = path.join(dir, METADATA);
+  let raw: { '@graph'?: CrateEntity[] };
+  try {
+    raw = JSON.parse(fs.readFileSync(file, 'utf8'));
+  } catch {
+    return null;
+  }
+  const graph = Array.isArray(raw['@graph']) ? raw['@graph'] : [];
+  const node = graph.find((e) => String(e['@id']) === id) as Record<string, unknown> | undefined;
+  if (!node) return null;
+  for (const [k, v] of Object.entries(props)) {
+    if (v === undefined) continue;
+    node[k] = v;
+  }
+  try {
+    fs.writeFileSync(file, `${JSON.stringify(raw, null, 2)}\n`);
+  } catch (e) {
+    console.error('[crate] failed to write crate metadata:', e);
+    return null;
+  }
+  void runCli(['rocrate', 'validate', dir], dir);
+  return readCrate(dir);
+}
+
+/**
  * Dataset/Software registration requires a content source — a local file, an
  * external URL, or the `--embargoed` flag for metadata-only records. Default to
  * embargoed when the form supplies neither path nor URL.
@@ -177,6 +217,44 @@ export async function addEntity(dir: string, e: NewEntity): Promise<CliResult> {
     for (const id of e.usedDataset ?? []) args.push('--used-dataset', id);
     for (const id of e.generated ?? []) args.push('--generated', id);
   }
+  return runCli(args, dir);
+}
+
+/** Initialize a new RO-Crate in `dir` via `fairscape-cli rocrate create` (manual build start). */
+export function createCrate(dir: string, meta: CreateCrateMeta): Promise<CliResult> {
+  const args = [
+    'rocrate', 'create', dir,
+    '--name', meta.name,
+    '--organization-name', meta.organizationName,
+    '--project-name', meta.projectName,
+    '--description', meta.description,
+  ];
+  for (const kw of meta.keywords) args.push('--keywords', kw);
+  if (meta.author) args.push('--author', meta.author);
+  if (meta.license) args.push('--license', meta.license);
+  if (meta.version) args.push('--version', meta.version);
+  return runCli(args, dir);
+}
+
+/**
+ * Infer a schema from one tabular file and append the Schema entity to the crate.
+ * Writes the schema JSON to <dir>/schemas/<slug>.schema.json; `input.file` is relative
+ * to the crate root. The dataset→schema (evi:Schema) back-link is set separately by the
+ * caller via setEntityProps, mirroring the remote-schema-infer skill.
+ */
+export async function inferSchema(dir: string, input: SchemaInferInput): Promise<CliResult> {
+  const slug =
+    input.name.toLowerCase().replace(/[^a-z0-9._-]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 80) || 'schema';
+  const schemaFile = path.join(dir, 'schemas', `${slug}.schema.json`);
+  try {
+    fs.mkdirSync(path.dirname(schemaFile), { recursive: true });
+  } catch {
+    /* best-effort; the CLI errors if it truly can't write */
+  }
+  const inputAbs = path.isAbsolute(input.file) ? input.file : path.join(dir, input.file);
+  const args = ['schema', 'infer', '--name', input.name, '--description', input.description];
+  if (input.guid) args.push('--guid', input.guid);
+  args.push('--rocrate-path', dir, inputAbs, schemaFile);
   return runCli(args, dir);
 }
 
